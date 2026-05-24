@@ -1,0 +1,14 @@
+﻿interface/
+interface_broken/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Local/editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
