@@ -3,6 +3,7 @@ numpy
 pandas
 matplotlib
 gymnasium
-stable-baselines3
-torch
-pybullet
+stable-baselines3==2.3.2
+torch==2.3.1
+pybullet==3.2.7
+scipy
