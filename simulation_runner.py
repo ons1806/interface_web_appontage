@@ -11,30 +11,27 @@ class SimulationRunner:
         self.model_type = None
         self.scenario_mode = None
         self.wind_enabled = False
-        self.seed = 42
+
+        # Même seed de base que ton script VS Code
+        self.base_seed = 12345
 
     def load_env_and_model(self, model_type, scenario_mode=1, wind_enabled=False):
         """
-        Charge le vrai environnement PyBullet et le vrai modèle PPO.
-
-        Important pour Streamlit Cloud :
-        - gui=False
-        - PyBullet fonctionne en DIRECT
-        - le scénario est forcé pour limiter les différences avec VS Code
+        Charge l'environnement PyBullet et le modèle PPO.
         """
 
         self.model_type = model_type
         self.scenario_mode = int(scenario_mode)
         self.wind_enabled = bool(wind_enabled)
 
-        # ==================================================
-        # Chargement de l'environnement et du modèle PPO
-        # ==================================================
-
         if model_type == "position":
             from envs.drone_rl_env_2_obs import DroneLandingRLEnv
 
-            self.env = DroneLandingRLEnv(gui=False)
+            self.env = DroneLandingRLEnv(
+                gui=False,
+                episode_len_sec=50,
+                normalized_action_input=True,
+            )
             self.model = PPO.load(
                 "models/ppo_drone_meta_quadricopter_mode5_hard_obs.zip"
             )
@@ -42,45 +39,67 @@ class SimulationRunner:
         elif model_type == "vitesse":
             from envs.drone_rl_env_2_action import DroneLandingRLEnv
 
-            self.env = DroneLandingRLEnv(gui=False)
+            self.env = DroneLandingRLEnv(
+                gui=False,
+                episode_len_sec=50,
+                normalized_action_input=True,
+            )
             self.model = PPO.load(
                 "models/ppo_drone_meta_quadricopter_mode5_hard_action_5modes_2.zip"
             )
 
         else:
-            raise ValueError(
-                "Type de modèle inconnu : choisir 'position' ou 'vitesse'."
-            )
+            raise ValueError("Type de modèle inconnu : choisir 'position' ou 'vitesse'.")
 
-        # ==================================================
-        # Stabilisation du scénario
-        # ==================================================
+        self._apply_deterministic_eval_config()
 
-        # Désactiver le choix aléatoire du mode du méta-modèle
+    def _get_mode_seed(self):
+        """
+        Reproduit la logique VS Code :
+        mode_seed = seed + mode
+        """
+        return int(self.base_seed + self.scenario_mode)
+
+    def _apply_deterministic_eval_config(self):
+        """
+        Force un scénario déterministe pour Streamlit.
+        Cette logique reprend celle du script VS Code.
+        """
+
+        if self.env is None:
+            return
+
+        mode_seed = self._get_mode_seed()
+
+        np.random.seed(mode_seed)
+
+        # Désactiver le choix aléatoire du mode
         if hasattr(self.env, "use_random_meta_mode"):
             self.env.use_random_meta_mode = False
 
-        # Forcer le mode du méta-modèle choisi dans l'interface
+        # Forcer le mode du méta-modèle
         if hasattr(self.env, "meta_model"):
-            self.env.meta_model.set_mode(self.scenario_mode)
+            self.env.meta_model.set_mode(int(self.scenario_mode))
 
-        # Compatibilité avec différents noms éventuels
+            # Très important : forcer le générateur du méta-modèle
+            if hasattr(self.env.meta_model, "rng"):
+                self.env.meta_model.rng = np.random.default_rng(mode_seed)
+
+        # Forcer le générateur du vent Dryden
+        if hasattr(self.env, "wind_model"):
+            if hasattr(self.env.wind_model, "rng"):
+                self.env.wind_model.rng = np.random.default_rng(mode_seed + 100_000)
+
+        # Forcer le choix du vent depuis l'interface
+        if hasattr(self.env, "wind_enabled"):
+            self.env.wind_enabled = bool(self.wind_enabled)
+
+        # Compatibilité avec d'autres noms éventuels
         if hasattr(self.env, "scenario_mode"):
-            self.env.scenario_mode = self.scenario_mode
+            self.env.scenario_mode = int(self.scenario_mode)
 
         if hasattr(self.env, "mode"):
-            self.env.mode = self.scenario_mode
-
-        # Forcer le mode de mouvement de plateforme si ton environnement l'utilise
-        if hasattr(self.env, "platform_motion_mode"):
-            self.env.platform_motion_mode = self.scenario_mode
-
-        # Forcer l'activation/désactivation du vent
-        if hasattr(self.env, "wind_enabled"):
-            self.env.wind_enabled = self.wind_enabled
-
-        # Fixer les seeds côté numpy
-        np.random.seed(self.seed)
+            self.env.mode = int(self.scenario_mode)
 
     def _capture_frame(self, width=640, height=360):
         """
@@ -139,45 +158,23 @@ class SimulationRunner:
     ):
         """
         Lance un épisode complet avec le vrai modèle PPO.
-
-        Retourne :
-        - df : données temporelles
-        - summary : résumé numérique
-        - frames : images PyBullet si capture_frames=True
         """
 
         if self.env is None or self.model is None:
-            raise RuntimeError(
-                "L'environnement ou le modèle PPO n'est pas chargé."
-            )
+            raise RuntimeError("L'environnement ou le modèle PPO n'est pas chargé.")
 
-        # ==================================================
-        # Reset déterministe
-        # ==================================================
+        mode_seed = self._get_mode_seed()
 
-        np.random.seed(self.seed)
+        # On réapplique la config juste avant le reset.
+        # C'est important car reset() peut consommer des variables aléatoires.
+        self._apply_deterministic_eval_config()
 
-        obs, reset_info = self.env.reset(seed=self.seed)
-
-        # Après reset, on force encore les paramètres car certains environnements
-        # peuvent les modifier dans reset()
-        if hasattr(self.env, "use_random_meta_mode"):
-            self.env.use_random_meta_mode = False
-
-        if hasattr(self.env, "meta_model"):
-            self.env.meta_model.set_mode(self.scenario_mode)
-
-        if hasattr(self.env, "wind_enabled"):
-            self.env.wind_enabled = self.wind_enabled
+        obs, reset_info = self.env.reset(seed=mode_seed)
 
         data = []
         frames = []
         total_reward = 0.0
         success = False
-
-        # ==================================================
-        # Capture initiale
-        # ==================================================
 
         if capture_frames:
             frame = self._capture_frame()
@@ -185,10 +182,6 @@ class SimulationRunner:
                 frames.append(frame)
                 if on_frame is not None:
                     on_frame(frame, 0)
-
-        # ==================================================
-        # Boucle de simulation
-        # ==================================================
 
         for step in range(max_steps):
             action, _ = self.model.predict(obs, deterministic=True)
@@ -198,23 +191,17 @@ class SimulationRunner:
             done = bool(terminated or truncated)
             total_reward += float(reward)
 
-            # ==================================================
-            # Grandeurs principales
-            # ==================================================
-
             x_rel = float(info.get("x_rel", np.nan))
             y_rel = float(info.get("y_rel", np.nan))
             z_rel = float(info.get("z_rel", np.nan))
 
             if "xy_error" in info:
                 xy_error = float(info["xy_error"])
+            elif not np.isnan(x_rel) and not np.isnan(y_rel):
+                xy_error = float(np.sqrt(x_rel**2 + y_rel**2))
             else:
-                if not np.isnan(x_rel) and not np.isnan(y_rel):
-                    xy_error = float(np.sqrt(x_rel**2 + y_rel**2))
-                else:
-                    xy_error = np.nan
+                xy_error = np.nan
 
-            # Détection du succès
             if info.get("success", False):
                 success = True
 
@@ -223,12 +210,9 @@ class SimulationRunner:
 
             action = np.array(action).flatten()
 
-            # ==================================================
-            # Enregistrement des données
-            # ==================================================
-
             data.append({
                 "step": int(step),
+                "t": float(step / getattr(self.env, "control_freq_hz", 24)),
                 "reward": float(reward),
                 "total_reward": float(total_reward),
 
@@ -249,10 +233,21 @@ class SimulationRunner:
                 "action_2": float(action[1]) if len(action) > 1 else np.nan,
                 "action_3": float(action[2]) if len(action) > 2 else np.nan,
 
+                "policy_action_dvx": float(info.get("policy_action_dvx", action[0] if len(action) > 0 else np.nan)),
+                "policy_action_dvy": float(info.get("policy_action_dvy", action[1] if len(action) > 1 else np.nan)),
+                "policy_action_dvz": float(info.get("policy_action_dvz", action[2] if len(action) > 2 else np.nan)),
+
+                "command_dvx": float(info.get("command_dvx", np.nan)),
+                "command_dvy": float(info.get("command_dvy", np.nan)),
+                "command_dvz": float(info.get("command_dvz", np.nan)),
+
+                "target_vx": float(info.get("target_vx", np.nan)),
+                "target_vy": float(info.get("target_vy", np.nan)),
+                "target_vz": float(info.get("target_vz", np.nan)),
+
                 "done": done,
                 "success": bool(success),
 
-                # Informations utiles pour comparer VS Code et Streamlit
                 "meta_mode": info.get("meta_mode", reset_info.get("meta_mode", np.nan)),
                 "platform_motion_mode": info.get(
                     "platform_motion_mode",
@@ -271,13 +266,9 @@ class SimulationRunner:
                 "wind_y": float(info.get("wind_y", np.nan)),
                 "wind_z": float(info.get("wind_z", np.nan)),
 
-                "has_contact": info.get("has_contact", False),
-                "contact_stable_steps": info.get("contact_stable_steps", 0),
+                "has_contact": bool(info.get("has_contact", False)),
+                "contact_stable_steps": int(info.get("contact_stable_steps", 0)),
             })
-
-            # ==================================================
-            # Capture image PyBullet
-            # ==================================================
 
             if capture_frames and step % frame_interval == 0:
                 frame = self._capture_frame()
@@ -289,39 +280,31 @@ class SimulationRunner:
             if done:
                 break
 
-        # ==================================================
-        # Création du DataFrame
-        # ==================================================
-
         df = pd.DataFrame(data)
-
-        # ==================================================
-        # Fermeture de l'environnement
-        # ==================================================
 
         if self.env is not None:
             self.env.close()
 
-        # ==================================================
-        # Résumé numérique
-        # ==================================================
-
         if len(df) > 0:
             final_xy_error = float(df["xy_error"].iloc[-1])
             final_z_rel = float(df["z_rel"].iloc[-1])
+            max_contact_stable_steps = int(df["contact_stable_steps"].max())
         else:
             final_xy_error = np.nan
             final_z_rel = np.nan
+            max_contact_stable_steps = 0
 
         summary = {
             "model_type": self.model_type,
             "scenario_mode": self.scenario_mode,
+            "mode_seed": mode_seed,
             "wind_enabled": self.wind_enabled,
             "total_reward": float(total_reward),
             "episode_length": int(len(df)),
             "success": bool(success),
             "final_xy_error": final_xy_error,
             "final_z_rel": final_z_rel,
+            "max_contact_stable_steps": max_contact_stable_steps,
         }
 
         if capture_frames:
