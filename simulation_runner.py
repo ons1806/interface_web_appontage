@@ -103,6 +103,48 @@ class SimulationRunner:
         if hasattr(self.env, "mode"):
             self.env.mode = int(self.scenario_mode)
 
+    def _get_drone_position(self):
+        """
+        Récupère la position absolue du drone dans PyBullet.
+        """
+        if (
+            self.env is None
+            or getattr(self.env, "pyb_client", None) is None
+            or getattr(self.env, "drone_id", None) is None
+        ):
+            return np.nan, np.nan, np.nan
+
+        pos, _ = p.getBasePositionAndOrientation(
+            self.env.drone_id,
+            physicsClientId=self.env.pyb_client,
+        )
+
+        return float(pos[0]), float(pos[1]), float(pos[2])
+
+    def _get_platform_position(self):
+        """
+        Récupère la position absolue de la plateforme.
+        """
+
+        if self.env is None:
+            return np.nan, np.nan, np.nan
+
+        if getattr(self.env, "platform_position", None) is not None:
+            pos = self.env.platform_position
+            return float(pos[0]), float(pos[1]), float(pos[2])
+
+        if (
+            getattr(self.env, "platform_id", None) is not None
+            and getattr(self.env, "pyb_client", None) is not None
+        ):
+            pos, _ = p.getBasePositionAndOrientation(
+                self.env.platform_id,
+                physicsClientId=self.env.pyb_client,
+            )
+            return float(pos[0]), float(pos[1]), float(pos[2])
+
+        return np.nan, np.nan, np.nan
+
     def _capture_frame(self, width=640, height=360):
         """
         Capture une image PyBullet en mode DIRECT pour affichage dans Streamlit.
@@ -218,6 +260,9 @@ class SimulationRunner:
 
             action = np.array(action).flatten()
 
+            drone_x, drone_y, drone_z = self._get_drone_position()
+            platform_x, platform_y, platform_z = self._get_platform_position()
+
             row = {
                 "step": int(step),
                 "t": float(step / getattr(self.env, "control_freq_hz", 24)),
@@ -228,6 +273,14 @@ class SimulationRunner:
                 "y_rel": y_rel,
                 "z_rel": z_rel,
                 "xy_error": xy_error,
+
+                "drone_x": drone_x,
+                "drone_y": drone_y,
+                "drone_z": drone_z,
+
+                "platform_x": platform_x,
+                "platform_y": platform_y,
+                "platform_z": platform_z,
 
                 "vx": float(info.get("vx", np.nan)),
                 "vy": float(info.get("vy", np.nan)),

@@ -11,3 +11,4 @@ transforms3d==0.4.2
 setuptools
 pillow
 control==0.10.2
+plotly

@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objects as go
 
 from simulation_runner import SimulationRunner
 
@@ -16,6 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+
 # ==================================================
 # Style CSS
 # ==================================================
@@ -23,27 +25,25 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .main {
-        background-color: #f7f9fc;
-    }
-
     .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
         padding-bottom: 1rem;
+        max-width: 1500px;
     }
 
     .title-box {
         background: linear-gradient(90deg, #0f172a, #1e3a8a);
-        padding: 22px;
-        border-radius: 16px;
+        padding: 20px 26px;
+        border-radius: 18px;
         color: white;
-        margin-bottom: 20px;
-        box-shadow: 0px 4px 18px rgba(0,0,0,0.15);
+        margin-bottom: 18px;
+        box-shadow: 0px 8px 24px rgba(15, 23, 42, 0.18);
     }
 
     .title-box h1 {
-        margin-bottom: 4px;
-        font-size: 32px;
+        margin-bottom: 6px;
+        font-size: 34px;
+        font-weight: 800;
     }
 
     .title-box p {
@@ -52,21 +52,16 @@ st.markdown(
         font-size: 16px;
     }
 
-    .metric-card {
-        background-color: white;
-        padding: 18px;
-        border-radius: 14px;
-        box-shadow: 0px 2px 12px rgba(0,0,0,0.08);
-        border-left: 5px solid #2563eb;
-        margin-bottom: 12px;
+    section[data-testid="stSidebar"] {
+        background-color: #f1f5f9;
     }
 
-    .section-card {
+    div[data-testid="stMetric"] {
         background-color: white;
-        padding: 16px;
+        padding: 14px 16px;
         border-radius: 14px;
-        box-shadow: 0px 2px 12px rgba(0,0,0,0.07);
-        margin-bottom: 16px;
+        box-shadow: 0px 2px 12px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e5e7eb;
     }
 
     .small-text {
@@ -87,7 +82,7 @@ st.markdown(
     """
     <div class="title-box">
         <h1>Interface Web d'Appontage Autonome</h1>
-        <p>Simulation PPO + PyBullet avec visualisation, trajectoire et courbes en temps réel</p>
+        <p>Simulation PPO + PyBullet avec visualisation, trajectoire 3D et courbes en temps réel</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -150,27 +145,77 @@ else:
 # Fonctions de tracé
 # ==================================================
 
-def plot_xy_trajectory(df):
-    fig, ax = plt.subplots(figsize=(5.2, 4.2))
+def plot_3d_trajectory(df):
+    fig = go.Figure()
 
-    if len(df) > 0:
-        ax.plot(df["x_rel"], df["y_rel"], linewidth=2, label="Trajectoire relative")
-        ax.scatter(df["x_rel"].iloc[0], df["y_rel"].iloc[0], marker="o", label="Départ")
-        ax.scatter(df["x_rel"].iloc[-1], df["y_rel"].iloc[-1], marker="x", s=80, label="Position actuelle")
+    if len(df) == 0:
+        fig.update_layout(
+            height=520,
+            margin=dict(l=0, r=0, t=40, b=0),
+            title="Trajectoire 3D en temps réel"
+        )
+        return fig
 
-    ax.scatter(0, 0, marker="+", s=120, label="Cible")
-    ax.set_xlabel("x relatif (m)")
-    ax.set_ylabel("y relatif (m)")
-    ax.set_title("Trajectoire horizontale relative")
-    ax.grid(True)
-    ax.axis("equal")
-    ax.legend(loc="best")
+    # Trajectoire du drone
+    if {"drone_x", "drone_y", "drone_z"}.issubset(df.columns):
+        fig.add_trace(go.Scatter3d(
+            x=df["drone_x"],
+            y=df["drone_y"],
+            z=df["drone_z"],
+            mode="lines+markers",
+            name="Points of UAV",
+            line=dict(color="red", width=5),
+            marker=dict(size=3, color="red")
+        ))
+
+        fig.add_trace(go.Scatter3d(
+            x=[df["drone_x"].iloc[-1]],
+            y=[df["drone_y"].iloc[-1]],
+            z=[df["drone_z"].iloc[-1]],
+            mode="markers",
+            name="Current UAV",
+            marker=dict(size=7, color="blue", symbol="x")
+        ))
+
+    # Trajectoire de la plateforme
+    if {"platform_x", "platform_y", "platform_z"}.issubset(df.columns):
+        fig.add_trace(go.Scatter3d(
+            x=df["platform_x"],
+            y=df["platform_y"],
+            z=df["platform_z"],
+            mode="lines+markers",
+            name="Points of platform",
+            line=dict(color="green", width=5),
+            marker=dict(size=3, color="green")
+        ))
+
+        fig.add_trace(go.Scatter3d(
+            x=[df["platform_x"].iloc[-1]],
+            y=[df["platform_y"].iloc[-1]],
+            z=[df["platform_z"].iloc[-1]],
+            mode="markers",
+            name="Current platform",
+            marker=dict(size=7, color="purple", symbol="diamond")
+        ))
+
+    fig.update_layout(
+        title="Trajectoire 3D drone / plateforme",
+        scene=dict(
+            xaxis_title="X-direction (m)",
+            yaxis_title="Y-direction (m)",
+            zaxis_title="Z-direction (m)",
+            aspectmode="cube",
+        ),
+        height=520,
+        margin=dict(l=0, r=0, t=45, b=0),
+        legend=dict(x=0.02, y=0.98),
+    )
 
     return fig
 
 
 def plot_error_reward(df):
-    fig, ax = plt.subplots(figsize=(5.2, 3.5))
+    fig, ax = plt.subplots(figsize=(5.0, 3.0))
 
     if len(df) > 0:
         ax.plot(df["step"], df["xy_error"], label="Erreur XY")
@@ -186,7 +231,7 @@ def plot_error_reward(df):
 
 
 def plot_reward(df):
-    fig, ax = plt.subplots(figsize=(5.2, 3.5))
+    fig, ax = plt.subplots(figsize=(5.0, 3.0))
 
     if len(df) > 0:
         ax.plot(df["step"], df["reward"], label="Reward")
@@ -202,7 +247,7 @@ def plot_reward(df):
 
 
 def plot_actions(df):
-    fig, ax = plt.subplots(figsize=(5.2, 3.5))
+    fig, ax = plt.subplots(figsize=(5.0, 3.0))
 
     if len(df) > 0:
         ax.plot(df["step"], df["action_1"], label="action 1")
@@ -219,64 +264,69 @@ def plot_actions(df):
 
 
 # ==================================================
+# Métriques principales
+# ==================================================
+
+metric_col1, metric_col2, metric_col3, metric_col4, metric_col5 = st.columns(5)
+
+metric_success = metric_col1.empty()
+metric_xy = metric_col2.empty()
+metric_z = metric_col3.empty()
+metric_reward = metric_col4.empty()
+metric_step = metric_col5.empty()
+
+metric_success.metric("Succès", "---")
+metric_xy.metric("Erreur XY", "---")
+metric_z.metric("z relatif", "---")
+metric_reward.metric("Reward totale", "---")
+metric_step.metric("Step", "---")
+
+
+# ==================================================
 # Layout principal
 # ==================================================
 
-left_col, center_col, right_col = st.columns([1.0, 1.8, 1.2])
+config_col, sim_col, traj_col = st.columns([0.85, 1.45, 1.45])
 
-with left_col:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Configuration")
-    st.write(f"**Modèle :** {model_choice}")
-    st.write(f"**Scénario :** Mode {scenario_mode}")
-    st.write(f"**Vent :** {'Activé' if wind_enabled else 'Désactivé'}")
-    st.write(f"**Pas max :** {max_steps}")
-    st.markdown('</div>', unsafe_allow_html=True)
+with config_col:
+    with st.container(border=True):
+        st.subheader("Configuration")
+        st.write(f"**Modèle :** {model_choice}")
+        st.write(f"**Scénario :** Mode {scenario_mode}")
+        st.write(f"**Vent :** {'Activé' if wind_enabled else 'Désactivé'}")
+        st.write(f"**Pas max :** {max_steps}")
 
-    status_box = st.empty()
-    progress_bar = st.progress(0)
+        status_box = st.empty()
+        progress_bar = st.progress(0)
 
-with center_col:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Visualisation PyBullet")
-    image_placeholder = st.empty()
-    st.markdown('<p class="small-text">Vue caméra générée par PyBullet en mode DIRECT.</p>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+with sim_col:
+    with st.container(border=True):
+        st.subheader("Visualisation PyBullet")
+        image_placeholder = st.empty()
+        st.caption("Vue caméra générée par PyBullet en mode DIRECT.")
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Trajectoire en temps réel")
-    trajectory_placeholder = st.empty()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with right_col:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Indicateurs")
-    metric_success = st.empty()
-    metric_xy = st.empty()
-    metric_z = st.empty()
-    metric_reward = st.empty()
-    metric_step = st.empty()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Erreur de position")
-    error_placeholder = st.empty()
-    st.markdown('</div>', unsafe_allow_html=True)
+with traj_col:
+    with st.container(border=True):
+        st.subheader("Trajectoire 3D en temps réel")
+        trajectory3d_placeholder = st.empty()
 
 
-curve_col1, curve_col2 = st.columns(2)
+curve_col1, curve_col2, curve_col3 = st.columns(3)
 
 with curve_col1:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Reward")
-    reward_placeholder = st.empty()
-    st.markdown('</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.subheader("Erreur de position")
+        error_placeholder = st.empty()
 
 with curve_col2:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("Actions PPO")
-    actions_placeholder = st.empty()
-    st.markdown('</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.subheader("Reward")
+        reward_placeholder = st.empty()
+
+with curve_col3:
+    with st.container(border=True):
+        st.subheader("Actions PPO")
+        actions_placeholder = st.empty()
 
 
 # ==================================================
@@ -323,7 +373,12 @@ if run_button:
         metric_reward.metric("Reward totale", f"{current_reward:.2f}")
         metric_step.metric("Step", int(step))
 
-        trajectory_placeholder.pyplot(plot_xy_trajectory(df_live), clear_figure=True)
+        trajectory3d_placeholder.plotly_chart(
+            plot_3d_trajectory(df_live),
+            use_container_width=True,
+            key=f"traj3d_{step}"
+        )
+
         error_placeholder.pyplot(plot_error_reward(df_live), clear_figure=True)
         reward_placeholder.pyplot(plot_reward(df_live), clear_figure=True)
         actions_placeholder.pyplot(plot_actions(df_live), clear_figure=True)
@@ -350,8 +405,12 @@ if run_button:
     progress_bar.progress(1.0)
     status_box.success("Simulation terminée.")
 
-    # Affichage final
-    trajectory_placeholder.pyplot(plot_xy_trajectory(df), clear_figure=True)
+    trajectory3d_placeholder.plotly_chart(
+        plot_3d_trajectory(df),
+        use_container_width=True,
+        key="traj3d_final"
+    )
+
     error_placeholder.pyplot(plot_error_reward(df), clear_figure=True)
     reward_placeholder.pyplot(plot_reward(df), clear_figure=True)
     actions_placeholder.pyplot(plot_actions(df), clear_figure=True)
