@@ -1,49 +1,117 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 from simulation_runner import SimulationRunner
 
 
+# ==================================================
+# Configuration générale
+# ==================================================
+
 st.set_page_config(
     page_title="Interface Web - Appontage autonome",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-st.title("Interface Web de Simulation - Appontage Autonome d'un Drone")
-
-st.markdown("""
-Cette interface permet de lancer une simulation d'appontage autonome avec deux espaces d'actions :
-correction de position et correction de vitesse.
-""")
-
 # ==================================================
-# Barre latérale de contrôle
+# Style CSS
 # ==================================================
 
-st.sidebar.header("Panneau de contrôle")
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #f7f9fc;
+    }
+
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 1rem;
+    }
+
+    .title-box {
+        background: linear-gradient(90deg, #0f172a, #1e3a8a);
+        padding: 22px;
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0px 4px 18px rgba(0,0,0,0.15);
+    }
+
+    .title-box h1 {
+        margin-bottom: 4px;
+        font-size: 32px;
+    }
+
+    .title-box p {
+        margin: 0;
+        color: #dbeafe;
+        font-size: 16px;
+    }
+
+    .metric-card {
+        background-color: white;
+        padding: 18px;
+        border-radius: 14px;
+        box-shadow: 0px 2px 12px rgba(0,0,0,0.08);
+        border-left: 5px solid #2563eb;
+        margin-bottom: 12px;
+    }
+
+    .section-card {
+        background-color: white;
+        padding: 16px;
+        border-radius: 14px;
+        box-shadow: 0px 2px 12px rgba(0,0,0,0.07);
+        margin-bottom: 16px;
+    }
+
+    .small-text {
+        color: #64748b;
+        font-size: 14px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ==================================================
+# En-tête
+# ==================================================
+
+st.markdown(
+    """
+    <div class="title-box">
+        <h1>Interface Web d'Appontage Autonome</h1>
+        <p>Simulation PPO + PyBullet avec visualisation, trajectoire et courbes en temps réel</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ==================================================
+# Barre latérale
+# ==================================================
+
+st.sidebar.title("Panneau de contrôle")
 
 model_choice = st.sidebar.selectbox(
-    "Choisir le modèle PPO",
+    "Modèle PPO",
     ["Correction de position", "Correction de vitesse"]
 )
 
 scenario_mode = st.sidebar.selectbox(
-    "Choisir le scénario",
-    [1, 2, 3, 4, 5]
+    "Scénario",
+    [1, 2, 3, 4, 5],
+    index=4
 )
 
 wind_enabled = st.sidebar.checkbox("Activer le vent", value=False)
-
-render_enabled = st.sidebar.checkbox("Afficher la simulation PyBullet", value=True)
-
-frame_interval = st.sidebar.slider(
-    "Frequence d'affichage PyBullet",
-    min_value=5,
-    max_value=100,
-    value=20,
-    step=5
-)
 
 max_steps = st.sidebar.slider(
     "Nombre maximal de pas",
@@ -53,12 +121,24 @@ max_steps = st.sidebar.slider(
     step=100
 )
 
-run_button = st.sidebar.button("Lancer la simulation")
+frame_interval = st.sidebar.slider(
+    "Intervalle d'affichage image",
+    min_value=5,
+    max_value=100,
+    value=20,
+    step=5
+)
 
+plot_interval = st.sidebar.slider(
+    "Intervalle de mise à jour des courbes",
+    min_value=5,
+    max_value=100,
+    value=20,
+    step=5
+)
 
-# ==================================================
-# Conversion choix utilisateur
-# ==================================================
+run_button = st.sidebar.button("Lancer la simulation", type="primary")
+
 
 if model_choice == "Correction de position":
     model_type = "position"
@@ -67,12 +147,144 @@ else:
 
 
 # ==================================================
-# Lancement simulation
+# Fonctions de tracé
+# ==================================================
+
+def plot_xy_trajectory(df):
+    fig, ax = plt.subplots(figsize=(5.2, 4.2))
+
+    if len(df) > 0:
+        ax.plot(df["x_rel"], df["y_rel"], linewidth=2, label="Trajectoire relative")
+        ax.scatter(df["x_rel"].iloc[0], df["y_rel"].iloc[0], marker="o", label="Départ")
+        ax.scatter(df["x_rel"].iloc[-1], df["y_rel"].iloc[-1], marker="x", s=80, label="Position actuelle")
+
+    ax.scatter(0, 0, marker="+", s=120, label="Cible")
+    ax.set_xlabel("x relatif (m)")
+    ax.set_ylabel("y relatif (m)")
+    ax.set_title("Trajectoire horizontale relative")
+    ax.grid(True)
+    ax.axis("equal")
+    ax.legend(loc="best")
+
+    return fig
+
+
+def plot_error_reward(df):
+    fig, ax = plt.subplots(figsize=(5.2, 3.5))
+
+    if len(df) > 0:
+        ax.plot(df["step"], df["xy_error"], label="Erreur XY")
+        ax.plot(df["step"], np.abs(df["z_rel"]), label="|z_rel|")
+
+    ax.set_xlabel("Pas de simulation")
+    ax.set_ylabel("Erreur (m)")
+    ax.set_title("Erreur de position")
+    ax.grid(True)
+    ax.legend(loc="best")
+
+    return fig
+
+
+def plot_reward(df):
+    fig, ax = plt.subplots(figsize=(5.2, 3.5))
+
+    if len(df) > 0:
+        ax.plot(df["step"], df["reward"], label="Reward")
+        ax.plot(df["step"], df["total_reward"], label="Reward cumulée")
+
+    ax.set_xlabel("Pas de simulation")
+    ax.set_ylabel("Récompense")
+    ax.set_title("Évolution de la récompense")
+    ax.grid(True)
+    ax.legend(loc="best")
+
+    return fig
+
+
+def plot_actions(df):
+    fig, ax = plt.subplots(figsize=(5.2, 3.5))
+
+    if len(df) > 0:
+        ax.plot(df["step"], df["action_1"], label="action 1")
+        ax.plot(df["step"], df["action_2"], label="action 2")
+        ax.plot(df["step"], df["action_3"], label="action 3")
+
+    ax.set_xlabel("Pas de simulation")
+    ax.set_ylabel("Action PPO")
+    ax.set_title("Actions générées par PPO")
+    ax.grid(True)
+    ax.legend(loc="best")
+
+    return fig
+
+
+# ==================================================
+# Layout principal
+# ==================================================
+
+left_col, center_col, right_col = st.columns([1.0, 1.8, 1.2])
+
+with left_col:
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Configuration")
+    st.write(f"**Modèle :** {model_choice}")
+    st.write(f"**Scénario :** Mode {scenario_mode}")
+    st.write(f"**Vent :** {'Activé' if wind_enabled else 'Désactivé'}")
+    st.write(f"**Pas max :** {max_steps}")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    status_box = st.empty()
+    progress_bar = st.progress(0)
+
+with center_col:
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Visualisation PyBullet")
+    image_placeholder = st.empty()
+    st.markdown('<p class="small-text">Vue caméra générée par PyBullet en mode DIRECT.</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Trajectoire en temps réel")
+    trajectory_placeholder = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with right_col:
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Indicateurs")
+    metric_success = st.empty()
+    metric_xy = st.empty()
+    metric_z = st.empty()
+    metric_reward = st.empty()
+    metric_step = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Erreur de position")
+    error_placeholder = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+curve_col1, curve_col2 = st.columns(2)
+
+with curve_col1:
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Reward")
+    reward_placeholder = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with curve_col2:
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.subheader("Actions PPO")
+    actions_placeholder = st.empty()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ==================================================
+# Simulation
 # ==================================================
 
 if run_button:
-    st.info("Simulation en cours...")
-    render_placeholder = st.empty()
+    status_box.info("Initialisation de la simulation...")
 
     runner = SimulationRunner()
     runner.load_env_and_model(
@@ -81,127 +293,88 @@ if run_button:
         wind_enabled=wind_enabled
     )
 
-    def show_frame(frame, step):
-        render_placeholder.image(
+    live_data = []
+
+    def update_frame(frame, step):
+        image_placeholder.image(
             frame,
-            caption=f"Vue PyBullet - pas {step}",
+            caption=f"Visualisation PyBullet - step {step}",
             use_container_width=True
         )
 
-    if render_enabled:
-        df, summary, frames = runner.run_episode(
-            max_steps=max_steps,
-            capture_frames=True,
-            frame_interval=frame_interval,
-            on_frame=show_frame
-        )
+    def update_step(row, step):
+        live_data.append(row)
+
+        if step % plot_interval != 0:
+            return
+
+        df_live = pd.DataFrame(live_data)
+
+        progress_bar.progress(min(1.0, step / max_steps))
+
+        current_xy = row.get("xy_error", np.nan)
+        current_z = row.get("z_rel", np.nan)
+        current_reward = row.get("total_reward", np.nan)
+        current_success = row.get("success", False)
+
+        metric_success.metric("Succès", "Oui" if current_success else "Non")
+        metric_xy.metric("Erreur XY", f"{current_xy:.3f} m")
+        metric_z.metric("z relatif", f"{current_z:.3f} m")
+        metric_reward.metric("Reward totale", f"{current_reward:.2f}")
+        metric_step.metric("Step", int(step))
+
+        trajectory_placeholder.pyplot(plot_xy_trajectory(df_live), clear_figure=True)
+        error_placeholder.pyplot(plot_error_reward(df_live), clear_figure=True)
+        reward_placeholder.pyplot(plot_reward(df_live), clear_figure=True)
+        actions_placeholder.pyplot(plot_actions(df_live), clear_figure=True)
+
+    status_box.info("Simulation en cours...")
+
+    result = runner.run_episode(
+        max_steps=max_steps,
+        capture_frames=True,
+        frame_interval=frame_interval,
+        on_frame=update_frame,
+        on_step=update_step
+    )
+
+    if len(result) == 3:
+        df, summary, frames = result
     else:
-        df, summary = runner.run_episode(max_steps=max_steps)
+        df, summary = result
         frames = []
 
-    st.success("Simulation terminée.")
-
-    # Sauvegarde dans la session Streamlit
     st.session_state["df"] = df
     st.session_state["summary"] = summary
-    st.session_state["model_type"] = model_type
-    st.session_state["frames"] = frames
+
+    progress_bar.progress(1.0)
+    status_box.success("Simulation terminée.")
+
+    # Affichage final
+    trajectory_placeholder.pyplot(plot_xy_trajectory(df), clear_figure=True)
+    error_placeholder.pyplot(plot_error_reward(df), clear_figure=True)
+    reward_placeholder.pyplot(plot_reward(df), clear_figure=True)
+    actions_placeholder.pyplot(plot_actions(df), clear_figure=True)
+
+    metric_success.metric("Succès", "Oui" if summary["success"] else "Non")
+    metric_xy.metric("Erreur XY finale", f"{summary['final_xy_error']:.3f} m")
+    metric_z.metric("z relatif final", f"{summary['final_z_rel']:.3f} m")
+    metric_reward.metric("Reward totale", f"{summary['total_reward']:.2f}")
+    metric_step.metric("Durée épisode", summary["episode_length"])
 
 
 # ==================================================
-# Affichage résultats
+# Résultats finaux + téléchargement
 # ==================================================
 
 if "df" in st.session_state:
     df = st.session_state["df"]
     summary = st.session_state["summary"]
 
-    st.subheader("Résumé de l'épisode")
+    st.markdown("---")
+    st.subheader("Résultats enregistrés")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-
-    col1.metric("Récompense totale", f"{summary['total_reward']:.2f}")
-    col2.metric("Durée épisode", summary["episode_length"])
-    col3.metric("Succès", "Oui" if summary["success"] else "Non")
-    col4.metric("Erreur XY finale", f"{summary['final_xy_error']:.3f} m")
-    col5.metric("z relatif final", f"{summary['final_z_rel']:.3f} m")
-
-    if st.session_state.get("frames"):
-        st.subheader("Vue PyBullet")
-        frames = st.session_state["frames"]
-        frame_index = st.slider(
-            "Image de la simulation",
-            min_value=0,
-            max_value=len(frames) - 1,
-            value=len(frames) - 1
-        )
-        st.image(
-            frames[frame_index],
-            caption=f"Frame {frame_index + 1}/{len(frames)}",
-            use_container_width=True
-        )
-
-    st.subheader("Données enregistrées")
-    st.dataframe(df)
-
-    # ==================================================
-    # Courbe erreur horizontale
-    # ==================================================
-
-    st.subheader("Évolution de l'erreur horizontale")
-
-    fig1, ax1 = plt.subplots()
-    ax1.plot(df["step"], df["xy_error"])
-    ax1.set_xlabel("Pas de simulation")
-    ax1.set_ylabel("Erreur XY relative (m)")
-    ax1.grid(True)
-    st.pyplot(fig1)
-
-    # ==================================================
-    # Courbe z relatif
-    # ==================================================
-
-    st.subheader("Évolution de la hauteur relative")
-
-    fig2, ax2 = plt.subplots()
-    ax2.plot(df["step"], df["z_rel"])
-    ax2.set_xlabel("Pas de simulation")
-    ax2.set_ylabel("z relatif (m)")
-    ax2.grid(True)
-    st.pyplot(fig2)
-
-    # ==================================================
-    # Courbe récompense
-    # ==================================================
-
-    st.subheader("Évolution de la récompense")
-
-    fig3, ax3 = plt.subplots()
-    ax3.plot(df["step"], df["reward"])
-    ax3.set_xlabel("Pas de simulation")
-    ax3.set_ylabel("Reward")
-    ax3.grid(True)
-    st.pyplot(fig3)
-
-    # ==================================================
-    # Courbes actions
-    # ==================================================
-
-    st.subheader("Actions générées par le modèle PPO")
-
-    fig4, ax4 = plt.subplots()
-    ax4.plot(df["step"], df["action_1"], label="action 1")
-    ax4.plot(df["step"], df["action_2"], label="action 2")
-    ax4.plot(df["step"], df["action_3"], label="action 3")
-    ax4.set_xlabel("Pas de simulation")
-    ax4.set_ylabel("Action")
-    ax4.legend()
-    ax4.grid(True)
-    st.pyplot(fig4)
-
-    # ==================================================
-    # Export CSV
-    # ==================================================
+    st.dataframe(df, use_container_width=True)
 
     csv_data = df.to_csv(index=False).encode("utf-8")
 

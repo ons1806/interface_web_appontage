@@ -12,7 +12,7 @@ class SimulationRunner:
         self.scenario_mode = None
         self.wind_enabled = False
 
-        # Même seed de base que ton script VS Code
+        # Même seed de base que dans le script de test VS Code
         self.base_seed = 12345
 
     def load_env_and_model(self, model_type, scenario_mode=1, wind_enabled=False):
@@ -32,6 +32,7 @@ class SimulationRunner:
                 episode_len_sec=50,
                 normalized_action_input=True,
             )
+
             self.model = PPO.load(
                 "models/ppo_drone_meta_quadricopter_mode5_hard_obs.zip"
             )
@@ -44,18 +45,21 @@ class SimulationRunner:
                 episode_len_sec=50,
                 normalized_action_input=True,
             )
+
             self.model = PPO.load(
                 "models/ppo_drone_meta_quadricopter_mode5_hard_action_5modes_2.zip"
             )
 
         else:
-            raise ValueError("Type de modèle inconnu : choisir 'position' ou 'vitesse'.")
+            raise ValueError(
+                "Type de modèle inconnu : choisir 'position' ou 'vitesse'."
+            )
 
         self._apply_deterministic_eval_config()
 
     def _get_mode_seed(self):
         """
-        Reproduit la logique VS Code :
+        Reproduit la logique du script VS Code :
         mode_seed = seed + mode
         """
         return int(self.base_seed + self.scenario_mode)
@@ -63,7 +67,6 @@ class SimulationRunner:
     def _apply_deterministic_eval_config(self):
         """
         Force un scénario déterministe pour Streamlit.
-        Cette logique reprend celle du script VS Code.
         """
 
         if self.env is None:
@@ -81,7 +84,6 @@ class SimulationRunner:
         if hasattr(self.env, "meta_model"):
             self.env.meta_model.set_mode(int(self.scenario_mode))
 
-            # Très important : forcer le générateur du méta-modèle
             if hasattr(self.env.meta_model, "rng"):
                 self.env.meta_model.rng = np.random.default_rng(mode_seed)
 
@@ -90,11 +92,11 @@ class SimulationRunner:
             if hasattr(self.env.wind_model, "rng"):
                 self.env.wind_model.rng = np.random.default_rng(mode_seed + 100_000)
 
-        # Forcer le choix du vent depuis l'interface
+        # Forcer l'activation ou non du vent depuis l'interface
         if hasattr(self.env, "wind_enabled"):
             self.env.wind_enabled = bool(self.wind_enabled)
 
-        # Compatibilité avec d'autres noms éventuels
+        # Compatibilité éventuelle avec d'autres noms de variables
         if hasattr(self.env, "scenario_mode"):
             self.env.scenario_mode = int(self.scenario_mode)
 
@@ -155,9 +157,16 @@ class SimulationRunner:
         capture_frames=False,
         frame_interval=20,
         on_frame=None,
+        on_step=None,
     ):
         """
         Lance un épisode complet avec le vrai modèle PPO.
+
+        Paramètres :
+        - capture_frames : active la capture PyBullet
+        - frame_interval : intervalle de capture des images
+        - on_frame : fonction appelée à chaque nouvelle image
+        - on_step : fonction appelée à chaque pas de simulation pour courbes temps réel
         """
 
         if self.env is None or self.model is None:
@@ -165,8 +174,7 @@ class SimulationRunner:
 
         mode_seed = self._get_mode_seed()
 
-        # On réapplique la config juste avant le reset.
-        # C'est important car reset() peut consommer des variables aléatoires.
+        # Reforcer la configuration juste avant reset
         self._apply_deterministic_eval_config()
 
         obs, reset_info = self.env.reset(seed=mode_seed)
@@ -210,7 +218,7 @@ class SimulationRunner:
 
             action = np.array(action).flatten()
 
-            data.append({
+            row = {
                 "step": int(step),
                 "t": float(step / getattr(self.env, "control_freq_hz", 24)),
                 "reward": float(reward),
@@ -233,9 +241,15 @@ class SimulationRunner:
                 "action_2": float(action[1]) if len(action) > 1 else np.nan,
                 "action_3": float(action[2]) if len(action) > 2 else np.nan,
 
-                "policy_action_dvx": float(info.get("policy_action_dvx", action[0] if len(action) > 0 else np.nan)),
-                "policy_action_dvy": float(info.get("policy_action_dvy", action[1] if len(action) > 1 else np.nan)),
-                "policy_action_dvz": float(info.get("policy_action_dvz", action[2] if len(action) > 2 else np.nan)),
+                "policy_action_dvx": float(
+                    info.get("policy_action_dvx", action[0] if len(action) > 0 else np.nan)
+                ),
+                "policy_action_dvy": float(
+                    info.get("policy_action_dvy", action[1] if len(action) > 1 else np.nan)
+                ),
+                "policy_action_dvz": float(
+                    info.get("policy_action_dvz", action[2] if len(action) > 2 else np.nan)
+                ),
 
                 "command_dvx": float(info.get("command_dvx", np.nan)),
                 "command_dvy": float(info.get("command_dvy", np.nan)),
@@ -248,7 +262,10 @@ class SimulationRunner:
                 "done": done,
                 "success": bool(success),
 
-                "meta_mode": info.get("meta_mode", reset_info.get("meta_mode", np.nan)),
+                "meta_mode": info.get(
+                    "meta_mode",
+                    reset_info.get("meta_mode", np.nan),
+                ),
                 "platform_motion_mode": info.get(
                     "platform_motion_mode",
                     reset_info.get("platform_motion_mode", np.nan),
@@ -268,8 +285,15 @@ class SimulationRunner:
 
                 "has_contact": bool(info.get("has_contact", False)),
                 "contact_stable_steps": int(info.get("contact_stable_steps", 0)),
-            })
+            }
 
+            data.append(row)
+
+            # Mise à jour temps réel des courbes Streamlit
+            if on_step is not None:
+                on_step(row, step)
+
+            # Capture de l'image PyBullet
             if capture_frames and step % frame_interval == 0:
                 frame = self._capture_frame()
                 if frame is not None:
