@@ -2,3 +2,6 @@ streamlit
 numpy
 pandas
 matplotlib
+gymnasium
+stable-baselines3
+torch
