@@ -66,8 +66,9 @@ class DroneLandingRLEnv(gym.Env):
 
         # Chemin du mesh .obj
         current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
         self.platform_obj_path = os.path.join(
-            current_dir,
+            project_root,
             "asset",
             "plateforme_obj",
             "STD04_0100_Plateaux_M600 Mobile Aluminium.obj"
@@ -240,12 +241,19 @@ class DroneLandingRLEnv(gym.Env):
         )
 
         # Création du mesh de collision
-        self.platform_collision_id = p.createCollisionShape(
-            shapeType=p.GEOM_MESH,
-            fileName=self.platform_obj_path,
-            meshScale=[1, 1, 1],
-            physicsClientId=self.pyb_client,
-        )
+        try:
+            self.platform_collision_id = p.createCollisionShape(
+                shapeType=p.GEOM_MESH,
+                fileName=self.platform_obj_path,
+                meshScale=[1, 1, 1],
+                physicsClientId=self.pyb_client,
+            )
+        except p.error:
+            self.platform_collision_id = p.createCollisionShape(
+                shapeType=p.GEOM_BOX,
+                halfExtents=[0.45, 0.45, 0.04],
+                physicsClientId=self.pyb_client,
+            )
 
         # Création du corps rigide de la plateforme
         self.platform_id = p.createMultiBody(
