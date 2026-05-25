@@ -3,3 +3,8 @@ numpy
 pandas
 matplotlib
 gymnasium
+pybullet
+stable-baselines3
+torch
+gym-pybullet-drones
+scipy
