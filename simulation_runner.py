@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pybullet as p
 from stable_baselines3 import PPO
 
 
@@ -52,7 +53,46 @@ class SimulationRunner:
         if hasattr(self.env, "wind_enabled"):
             self.env.wind_enabled = wind_enabled
 
-    def run_episode(self, max_steps=1000):
+    def _capture_frame(self, width=640, height=360):
+        if self.env is None or self.env.pyb_client is None:
+            return None
+
+        target = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        if getattr(self.env, "platform_position", None) is not None:
+            target = np.array(self.env.platform_position, dtype=np.float32)
+
+        if getattr(self.env, "drone_id", None) is not None:
+            drone_pos, _ = p.getBasePositionAndOrientation(
+                self.env.drone_id,
+                physicsClientId=self.env.pyb_client,
+            )
+            target = 0.5 * target + 0.5 * np.array(drone_pos, dtype=np.float32)
+
+        view_matrix = p.computeViewMatrixFromYawPitchRoll(
+            cameraTargetPosition=target.tolist(),
+            distance=2.4,
+            yaw=45,
+            pitch=-35,
+            roll=0,
+            upAxisIndex=2,
+        )
+        projection_matrix = p.computeProjectionMatrixFOV(
+            fov=60,
+            aspect=width / height,
+            nearVal=0.05,
+            farVal=20.0,
+        )
+        _, _, rgba, _, _ = p.getCameraImage(
+            width=width,
+            height=height,
+            viewMatrix=view_matrix,
+            projectionMatrix=projection_matrix,
+            renderer=p.ER_TINY_RENDERER,
+            physicsClientId=self.env.pyb_client,
+        )
+        return np.asarray(rgba, dtype=np.uint8).reshape(height, width, 4)[:, :, :3]
+
+    def run_episode(self, max_steps=1000, capture_frames=False, frame_interval=20, on_frame=None):
         """
         Lance un épisode complet avec le vrai modèle PPO.
         Retourne :
@@ -66,8 +106,16 @@ class SimulationRunner:
         obs, _ = self.env.reset()
 
         data = []
+        frames = []
         total_reward = 0.0
         success = False
+
+        if capture_frames:
+            frame = self._capture_frame()
+            if frame is not None:
+                frames.append(frame)
+                if on_frame is not None:
+                    on_frame(frame, 0)
 
         for step in range(max_steps):
             action, _ = self.model.predict(obs, deterministic=True)
@@ -111,6 +159,13 @@ class SimulationRunner:
                 "success": success
             })
 
+            if capture_frames and step % frame_interval == 0:
+                frame = self._capture_frame()
+                if frame is not None:
+                    frames.append(frame)
+                    if on_frame is not None:
+                        on_frame(frame, step)
+
             if done:
                 break
 
@@ -126,5 +181,8 @@ class SimulationRunner:
             "final_xy_error": df["xy_error"].iloc[-1] if len(df) > 0 else np.nan,
             "final_z_rel": df["z_rel"].iloc[-1] if len(df) > 0 else np.nan
         }
+
+        if capture_frames:
+            return df, summary, frames
 
         return df, summary
