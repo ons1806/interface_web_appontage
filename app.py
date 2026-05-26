@@ -169,8 +169,8 @@ def plot_3d_trajectory(df):
         ))
 
         fig.add_trace(go.Scatter3d(
-            x=[df["drone_x"].iloc[-1]],
-            y=[df["drone_y"].iloc[-1]],
+            x=[df["drone_y"].iloc[-1]],
+            y=[df["drone_x"].iloc[-1]],
             z=[df["drone_z"].iloc[-1]],
             mode="markers",
             name="Current UAV",
@@ -180,8 +180,8 @@ def plot_3d_trajectory(df):
     # Trajectoire de la plateforme
     if {"platform_x", "platform_y", "platform_z"}.issubset(df.columns):
         fig.add_trace(go.Scatter3d(
-            x=df["platform_x"],
-            y=df["platform_y"],
+            x=df["platform_y"],
+            y=df["platform_x"],
             z=df["platform_z"],
             mode="lines+markers",
             name="Points of platform",
@@ -190,8 +190,8 @@ def plot_3d_trajectory(df):
         ))
 
         fig.add_trace(go.Scatter3d(
-            x=[df["platform_x"].iloc[-1]],
-            y=[df["platform_y"].iloc[-1]],
+            x=[df["platform_y"].iloc[-1]],
+            y=[df["platform_x"].iloc[-1]],
             z=[df["platform_z"].iloc[-1]],
             mode="markers",
             name="Current platform",
@@ -201,8 +201,8 @@ def plot_3d_trajectory(df):
     fig.update_layout(
         title="Trajectoire 3D drone / plateforme",
         scene=dict(
-            xaxis_title="X-direction (m)",
-            yaxis_title="Y-direction (m)",
+            xaxis_title="Y-direction (m)",
+            yaxis_title="X-direction (m)",
             zaxis_title="Z-direction (m)",
             aspectmode="cube",
         ),
