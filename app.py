@@ -277,54 +277,134 @@ ACTION_COLORS  = ["#f59e0b", "#8b5cf6", "#06b6d4"]
 
 def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
     fig = go.Figure()
+
     if df is None or len(df) == 0:
-        fig.update_layout(height=480, template=PLOTLY_TEMPLATE,
-                          title="Trajectoire 3D en temps réel")
+        fig.update_layout(
+            height=500, template=PLOTLY_TEMPLATE,
+            title=dict(text="Trajectoire 3D — drone & plateforme", font=dict(size=13)),
+            scene=dict(
+                xaxis_title="X (m)", yaxis_title="Y (m)", zaxis_title="Z (m)",
+                camera=dict(eye=dict(x=-1.6, y=-1.6, z=0.8)),
+            )
+        )
         return fig
 
-    if {"drone_x", "drone_y", "drone_z"}.issubset(df.columns):
+    has_drone    = {"drone_x",    "drone_y",    "drone_z"   }.issubset(df.columns)
+    has_platform = {"platform_x", "platform_y", "platform_z"}.issubset(df.columns)
+
+    # --- Drone : ligne de trajectoire ---
+    if has_drone:
         fig.add_trace(go.Scatter3d(
-            x=df["drone_y"], y=df["drone_x"], z=df["drone_z"],
-            mode="lines+markers", name="UAV",
-            line=dict(color=DRONE_COLOR, width=4),
-            marker=dict(size=2, color=DRONE_COLOR)
+            x=df["drone_x"], y=df["drone_y"], z=df["drone_z"],
+            mode="lines+markers",
+            name="UAV",
+            line=dict(color=DRONE_COLOR, width=5),
+            marker=dict(size=3, color=DRONE_COLOR, opacity=0.7),
+            hovertemplate="UAV<br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>"
         ))
+        # Point courant du drone
         fig.add_trace(go.Scatter3d(
-            x=[df["drone_y"].iloc[-1]],
-            y=[df["drone_x"].iloc[-1]],
+            x=[df["drone_x"].iloc[-1]],
+            y=[df["drone_y"].iloc[-1]],
             z=[df["drone_z"].iloc[-1]],
-            mode="markers", name="UAV actuel",
-            marker=dict(size=8, color="#1d4ed8", symbol="x")
+            mode="markers",
+            name="UAV actuel",
+            marker=dict(size=10, color="#1d4ed8", symbol="x",
+                        line=dict(color="white", width=2))
         ))
 
-    if {"platform_x", "platform_y", "platform_z"}.issubset(df.columns):
+    # --- Plateforme : ligne de trajectoire ---
+    if has_platform:
+        # Toujours tracer au moins les marqueurs, même si la plateforme bouge peu
+        n = len(df)
+        p_mode = "lines+markers" if n > 1 else "markers"
         fig.add_trace(go.Scatter3d(
-            x=df["platform_y"], y=df["platform_x"], z=df["platform_z"],
-            mode="lines+markers", name="Plateforme",
-            line=dict(color=PLATFORM_COLOR, width=4),
-            marker=dict(size=2, color=PLATFORM_COLOR)
+            x=df["platform_x"], y=df["platform_y"], z=df["platform_z"],
+            mode=p_mode,
+            name="Plateforme",
+            line=dict(color=PLATFORM_COLOR, width=5),
+            marker=dict(size=4, color=PLATFORM_COLOR, opacity=0.8),
+            hovertemplate="Plateforme<br>X: %{x:.3f} m<br>Y: %{y:.3f} m<br>Z: %{z:.3f} m<extra></extra>"
         ))
+        # Point courant de la plateforme
         fig.add_trace(go.Scatter3d(
-            x=[df["platform_y"].iloc[-1]],
-            y=[df["platform_x"].iloc[-1]],
+            x=[df["platform_x"].iloc[-1]],
+            y=[df["platform_y"].iloc[-1]],
             z=[df["platform_z"].iloc[-1]],
-            mode="markers", name="Plateforme actuelle",
-            marker=dict(size=9, color="#7c3aed", symbol="diamond")
+            mode="markers",
+            name="Plateforme actuelle",
+            marker=dict(size=12, color="#7c3aed", symbol="diamond",
+                        line=dict(color="white", width=2))
         ))
+
+    # --- Ligne de visée drone→plateforme (dernier pas) ---
+    if has_drone and has_platform:
+        fig.add_trace(go.Scatter3d(
+            x=[df["drone_x"].iloc[-1],    df["platform_x"].iloc[-1]],
+            y=[df["drone_y"].iloc[-1],    df["platform_y"].iloc[-1]],
+            z=[df["drone_z"].iloc[-1],    df["platform_z"].iloc[-1]],
+            mode="lines",
+            name="Vecteur erreur",
+            line=dict(color="#f59e0b", width=2, dash="dash"),
+            showlegend=True
+        ))
+
+    # --- Calcul des plages pour aspect ratio correct ---
+    all_x, all_y, all_z = [], [], []
+    for prefix in [("drone_x","drone_y","drone_z"), ("platform_x","platform_y","platform_z")]:
+        if set(prefix).issubset(df.columns):
+            all_x += df[prefix[0]].tolist()
+            all_y += df[prefix[1]].tolist()
+            all_z += df[prefix[2]].tolist()
+
+    def safe_range(vals, pad=0.1):
+        mn, mx = min(vals), max(vals)
+        d = max(mx - mn, 0.1)
+        return [mn - d * pad, mx + d * pad]
 
     fig.update_layout(
         title=dict(text="Trajectoire 3D — drone & plateforme", font=dict(size=13)),
         scene=dict(
-            xaxis_title="Y (m)", yaxis_title="X (m)", zaxis_title="Z (m)",
+            xaxis=dict(
+                title=dict(text="X (m)", font=dict(size=12, color="#374151")),
+                backgroundcolor="#f8fafc",
+                gridcolor="#e2e8f0",
+                showbackground=True,
+                range=safe_range(all_x) if all_x else None,
+                tickfont=dict(size=10),
+            ),
+            yaxis=dict(
+                title=dict(text="Y (m)", font=dict(size=12, color="#374151")),
+                backgroundcolor="#f1f5f9",
+                gridcolor="#e2e8f0",
+                showbackground=True,
+                range=safe_range(all_y) if all_y else None,
+                tickfont=dict(size=10),
+            ),
+            zaxis=dict(
+                title=dict(text="Z (m)", font=dict(size=12, color="#374151")),
+                backgroundcolor="#eef2ff",
+                gridcolor="#e2e8f0",
+                showbackground=True,
+                range=safe_range(all_z) if all_z else None,
+                tickfont=dict(size=10),
+            ),
+            # Angle de caméra : X à gauche, Y à droite, Z vertical
+            camera=dict(
+                eye=dict(x=-1.6, y=-1.6, z=0.8),
+                up=dict(x=0, y=0, z=1),
+                center=dict(x=0, y=0, z=-0.1),
+            ),
             aspectmode="cube",
-            xaxis=dict(backgroundcolor="#f8fafc", gridcolor="#e2e8f0"),
-            yaxis=dict(backgroundcolor="#f8fafc", gridcolor="#e2e8f0"),
-            zaxis=dict(backgroundcolor="#f8fafc", gridcolor="#e2e8f0"),
         ),
-        height=480,
-        margin=dict(l=0, r=0, t=40, b=0),
-        legend=dict(orientation="v", x=0.02, y=0.98, bgcolor="rgba(255,255,255,0.85)",
-                    bordercolor="#e2e8f0", borderwidth=1, font=dict(size=11)),
+        height=500,
+        margin=dict(l=0, r=0, t=45, b=0),
+        legend=dict(
+            orientation="v", x=0.01, y=0.99,
+            bgcolor="rgba(255,255,255,0.90)",
+            bordercolor="#e2e8f0", borderwidth=1,
+            font=dict(size=11)
+        ),
         template=PLOTLY_TEMPLATE,
     )
     return fig
