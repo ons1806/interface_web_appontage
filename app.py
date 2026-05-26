@@ -159,8 +159,8 @@ def plot_3d_trajectory(df):
     # Trajectoire du drone
     if {"drone_x", "drone_y", "drone_z"}.issubset(df.columns):
         fig.add_trace(go.Scatter3d(
-            x=df["drone_x"],
-            y=df["drone_y"],
+            x=df["drone_y"],
+            y=df["drone_x"],
             z=df["drone_z"],
             mode="lines+markers",
             name="Points of UAV",
