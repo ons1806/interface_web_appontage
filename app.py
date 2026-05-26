@@ -11,7 +11,6 @@ from simulation_runner import SimulationRunner
 # ==================================================
 st.set_page_config(
     page_title="Appontage Autonome — PPO+PyBullet",
-    page_icon="🚁",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -188,7 +187,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 # ==================================================
 st.markdown("""
 <div class="hero-header">
-    <h1>🚁 Interface Web d'Appontage Autonome</h1>
+    <h1>Interface Web d'Appontage Autonome</h1>
     <p class="subtitle">
         <span class="badge">PPO</span>
         <span class="badge">PyBullet</span>
@@ -202,7 +201,7 @@ st.markdown("""
 # Barre latérale
 # ==================================================
 with st.sidebar:
-    st.markdown("## 🎛️ Panneau de contrôle")
+    st.markdown("## Panneau de contrôle")
     st.markdown("---")
 
     st.markdown('<div class="section-title">Modèle & Scénario</div>', unsafe_allow_html=True)
@@ -224,7 +223,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown('<div class="section-title">Paramètres environnement</div>', unsafe_allow_html=True)
-    wind_enabled = st.checkbox("💨 Activer le vent", value=False)
+    wind_enabled = st.checkbox("Activer le vent", value=False)
 
     st.markdown("---")
     st.markdown('<div class="section-title">Paramètres simulation</div>', unsafe_allow_html=True)
@@ -233,10 +232,10 @@ with st.sidebar:
     plot_interval  = st.slider("Intervalle mise à jour courbes", 5, 100, 20, 5)
 
     st.markdown("---")
-    run_button = st.button("▶ Lancer la simulation", type="primary")
+    run_button = st.button("Lancer la simulation", type="primary")
 
     st.markdown("---")
-    with st.expander("ℹ️ Aide", expanded=False):
+    with st.expander("Aide", expanded=False):
         st.markdown("""
 **Modèles disponibles :**
 - *PPO–PID : correction de position* : le drone corrige directement sa position XYZ.
@@ -271,11 +270,11 @@ metric_z       = m3.empty()
 metric_reward  = m4.empty()
 metric_step    = m5.empty()
 
-metric_success.metric("✅ Succès",        "—")
-metric_xy.metric(     "📏 Erreur XY",     "—")
-metric_z.metric(      "⬆️ z relatif",     "—")
-metric_reward.metric( "🏆 Reward totale", "—")
-metric_step.metric(   "🔢 Durée épisode", "—")
+metric_success.metric("Succès",        "—")
+metric_xy.metric(     "Erreur XY",     "—")
+metric_z.metric(      "z relatif",     "—")
+metric_reward.metric( "Reward totale", "—")
+metric_step.metric(   "Durée épisode", "—")
 
 # ==================================================
 # Fonctions de tracé (toutes Plotly)
@@ -519,44 +518,44 @@ col_cfg, col_sim, col_traj = st.columns([0.85, 1.45, 1.5])
 
 with col_cfg:
     with st.container(border=True):
-        st.subheader("⚙️ Configuration")
+        st.subheader("Configuration")
         st.markdown(f"""
 | Paramètre | Valeur |
 |---|---|
 | Modèle | {model_choice} |
 | Scénario | Mode {scenario_mode} |
-| Vent | {'✅ Activé' if wind_enabled else '❌ Désactivé'} |
+| Vent | {'Activé' if wind_enabled else 'Désactivé'} |
 | Pas max | {max_steps} |
 """)
         status_placeholder = st.empty()
         status_placeholder.markdown(
-            '<span class="status-badge status-idle">⏸ En attente</span>',
+            '<span class="status-badge status-idle">En attente</span>',
             unsafe_allow_html=True
         )
         progress_bar = st.progress(0)
 
 with col_sim:
     with st.container(border=True):
-        st.subheader("📷 Visualisation PyBullet")
+        st.subheader("Visualisation PyBullet")
         image_placeholder = st.empty()
         image_placeholder.info("La simulation n'a pas encore démarré. Lancez-la depuis le panneau de gauche.")
         st.caption("Vue caméra générée par PyBullet en mode DIRECT.")
 
 with col_traj:
     with st.container(border=True):
-        st.subheader("🌐 Trajectoire 3D en temps réel")
+        st.subheader("Trajectoire 3D en temps réel")
         trajectory3d_placeholder = st.empty()
         trajectory3d_placeholder.plotly_chart(plot_3d_trajectory(None), use_container_width=True, key="traj3d_init")
 
 # ==================================================
 # Courbes — onglets
 # ==================================================
-st.markdown("### 📊 Courbes de simulation")
+st.markdown("### Courbes de simulation")
 tab_err, tab_rwd, tab_act, tab_dist = st.tabs([
-    "📏 Erreur de position",
-    "🏆 Récompense",
-    "🕹️ Actions PPO",
-    "📐 Distance XY"
+    "Erreur de position",
+    "Récompense",
+    "Actions PPO",
+    "Distance XY"
 ])
 
 with tab_err:
@@ -580,7 +579,7 @@ with tab_dist:
 # ==================================================
 if run_button:
     status_placeholder.markdown(
-        '<span class="status-badge status-running">⚙️ Initialisation...</span>',
+        '<span class="status-badge status-running">Initialisation...</span>',
         unsafe_allow_html=True
     )
     image_placeholder.empty()
@@ -593,7 +592,7 @@ if run_button:
             wind_enabled=wind_enabled
         )
     except Exception as e:
-        st.error(f"❌ Erreur lors du chargement du modèle : {e}")
+        st.error(f"Erreur lors du chargement du modèle : {e}")
         st.stop()
 
     live_data = []
@@ -620,13 +619,13 @@ if run_button:
         total = row.get("total_reward", float("nan"))
         ok    = row.get("success", False)
 
-        metric_success.metric("✅ Succès",        "Oui ✅" if ok else "Non ❌")
-        metric_xy.metric(     "📏 Erreur XY",     f"{xy:.3f} m",
-                              delta=f"{'↓ bon' if xy < 0.15 else '↑ hors seuil'}",
+        metric_success.metric("Succès",        "Oui" if ok else "Non")
+        metric_xy.metric(     "Erreur XY",     f"{xy:.3f} m",
+                              delta=f"{'conforme' if xy < 0.15 else 'hors seuil'}",
                               delta_color="normal" if xy < 0.15 else "inverse")
-        metric_z.metric(      "⬆️ z relatif",     f"{z:.3f} m")
-        metric_reward.metric( "🏆 Reward totale", f"{total:.2f}")
-        metric_step.metric(   "🔢 Pas",           int(step))
+        metric_z.metric(      "z relatif",     f"{z:.3f} m")
+        metric_reward.metric( "Reward totale", f"{total:.2f}")
+        metric_step.metric(   "Pas",           int(step))
 
         trajectory3d_placeholder.plotly_chart(
             plot_3d_trajectory(df_live),
@@ -638,7 +637,7 @@ if run_button:
         dist_placeholder.plotly_chart(plot_xy_distance(df_live), use_container_width=True, key=f"dist_{step}")
 
     status_placeholder.markdown(
-        '<span class="status-badge status-running">🔄 Simulation en cours...</span>',
+        '<span class="status-badge status-running">Simulation en cours...</span>',
         unsafe_allow_html=True
     )
 
@@ -651,7 +650,7 @@ if run_button:
             on_step=update_step
         )
     except Exception as e:
-        st.error(f"❌ Erreur pendant la simulation : {e}")
+        st.error(f"Erreur pendant la simulation : {e}")
         st.stop()
 
     df      = result[0]
@@ -662,7 +661,7 @@ if run_button:
 
     progress_bar.progress(1.0)
     status_placeholder.markdown(
-        '<span class="status-badge status-success">✅ Simulation terminée</span>',
+        '<span class="status-badge status-success">Simulation terminée</span>',
         unsafe_allow_html=True
     )
 
@@ -675,11 +674,11 @@ if run_button:
 
     # Métriques finales
     ok = summary.get("success", False)
-    metric_success.metric("✅ Succès",        "Oui ✅" if ok else "Non ❌")
-    metric_xy.metric(     "📏 Erreur XY finale",  f"{summary.get('final_xy_error', 0):.3f} m")
-    metric_z.metric(      "⬆️ z relatif final",   f"{summary.get('final_z_rel', 0):.3f} m")
-    metric_reward.metric( "🏆 Reward totale",     f"{summary.get('total_reward', 0):.2f}")
-    metric_step.metric(   "🔢 Durée épisode",     summary.get("episode_length", "—"))
+    metric_success.metric("Succès",        "Oui" if ok else "Non")
+    metric_xy.metric(     "Erreur XY finale",  f"{summary.get('final_xy_error', 0):.3f} m")
+    metric_z.metric(      "z relatif final",   f"{summary.get('final_z_rel', 0):.3f} m")
+    metric_reward.metric( "Reward totale",     f"{summary.get('total_reward', 0):.2f}")
+    metric_step.metric(   "Durée épisode",     summary.get("episode_length", "—"))
 
 # ==================================================
 # Section Résultats & Export
@@ -689,7 +688,7 @@ if "df" in st.session_state:
     summary = st.session_state["summary"]
 
     st.markdown("---")
-    st.markdown("### 💾 Résultats & Export")
+    st.markdown("### Résultats & Export")
 
     res_col1, res_col2 = st.columns([2, 1])
 
@@ -706,7 +705,6 @@ if "df" in st.session_state:
             st.markdown(f"""
 <div style="text-align:center; padding:12px; background:{'#dcfce7' if ok else '#fee2e2'};
      border-radius:10px; margin-bottom:12px;">
-    <div style="font-size:28px">{'✅' if ok else '❌'}</div>
     <div style="font-size:16px; font-weight:700; color:{color}">
         {'Atterrissage réussi' if ok else 'Atterrissage échoué'}
     </div>
@@ -729,7 +727,7 @@ if "df" in st.session_state:
     with exp_col1:
         csv_data = df.to_csv(index=False).encode("utf-8")
         st.download_button(
-            label="⬇️ Télécharger CSV",
+            label="Télécharger CSV",
             data=csv_data,
             file_name=f"simulation_appontage_mode{scenario_mode}.csv",
             mime="text/csv",
@@ -738,7 +736,7 @@ if "df" in st.session_state:
     with exp_col2:
         json_data = json.dumps(summary, indent=2, default=str).encode("utf-8")
         st.download_button(
-            label="⬇️ Télécharger résumé JSON",
+            label="Télécharger résumé JSON",
             data=json_data,
             file_name=f"summary_appontage_mode{scenario_mode}.json",
             mime="application/json",
@@ -748,7 +746,7 @@ if "df" in st.session_state:
         # Export statistiques descriptives
         stats_csv = df.describe().to_csv().encode("utf-8")
         st.download_button(
-            label="⬇️ Statistiques descriptives",
+            label="Statistiques descriptives",
             data=stats_csv,
             file_name=f"stats_appontage_mode{scenario_mode}.csv",
             mime="text/csv",
