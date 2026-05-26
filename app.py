@@ -208,8 +208,12 @@ with st.sidebar:
     st.markdown('<div class="section-title">Modèle & Scénario</div>', unsafe_allow_html=True)
     model_choice = st.selectbox(
         "Modèle PPO",
-        ["Correction de position", "Correction de vitesse"],
-        help="Sélectionnez la stratégie de contrôle PPO utilisée."
+        [
+            "PPO–PID : correction de position",
+            "PPO–PID : correction de vitesse",
+            "PPO–MPC–PID : correction de vitesse",
+        ],
+        help="Sélectionnez l’architecture de commande PPO à évaluer."
     )
     scenario_mode = st.selectbox(
         "Scénario",
@@ -235,8 +239,9 @@ with st.sidebar:
     with st.expander("ℹ️ Aide", expanded=False):
         st.markdown("""
 **Modèles disponibles :**
-- *Correction de position* : le drone corrige directement sa position XYZ
-- *Correction de vitesse* : le drone ajuste sa vitesse (plus réaliste)
+- *PPO–PID : correction de position* : le drone corrige directement sa position XYZ.
+- *PPO–PID : correction de vitesse* : le drone ajuste sa vitesse.
+- *PPO–MPC–PID : correction de vitesse* : le PPO fournit une correction de vitesse, filtrée par le module MPC avant le PID.
 
 **Scénarios :**
 - Modes 1–4 : intensité croissante de houle
@@ -247,7 +252,14 @@ with st.sidebar:
 - z relatif final < 0.10 m
         """)
 
-model_type = "position" if model_choice == "Correction de position" else "vitesse"
+if model_choice == "PPO–PID : correction de position":
+    model_type = "position"
+elif model_choice == "PPO–PID : correction de vitesse":
+    model_type = "vitesse"
+elif model_choice == "PPO–MPC–PID : correction de vitesse":
+    model_type = "vitesse_mpc"
+else:
+    model_type = "vitesse"
 
 # ==================================================
 # Métriques — rangée principale
@@ -283,7 +295,7 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
             height=500, template=PLOTLY_TEMPLATE,
             title=dict(text="Trajectoire 3D — drone & plateforme", font=dict(size=13)),
             scene=dict(
-                xaxis_title="X (m)", yaxis_title="Y (m)", zaxis_title="Z (m)",
+                xaxis_title="Y (m)", yaxis_title="X (m)", zaxis_title="Z (m)",
                 camera=dict(eye=dict(x=-1.6, y=-1.6, z=0.8)),
             )
         )
@@ -295,7 +307,7 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
     # --- Drone : ligne de trajectoire ---
     if has_drone:
         fig.add_trace(go.Scatter3d(
-            x=df["drone_x"], y=df["drone_y"], z=df["drone_z"],
+            x=df["drone_y"], y=df["drone_x"], z=df["drone_z"],
             mode="lines+markers",
             name="UAV",
             line=dict(color=DRONE_COLOR, width=5),
@@ -304,8 +316,8 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
         ))
         # Point courant du drone
         fig.add_trace(go.Scatter3d(
-            x=[df["drone_x"].iloc[-1]],
-            y=[df["drone_y"].iloc[-1]],
+            x=[df["drone_y"].iloc[-1]],
+            y=[df["drone_x"].iloc[-1]],
             z=[df["drone_z"].iloc[-1]],
             mode="markers",
             name="UAV actuel",
@@ -319,7 +331,7 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
         n = len(df)
         p_mode = "lines+markers" if n > 1 else "markers"
         fig.add_trace(go.Scatter3d(
-            x=df["platform_x"], y=df["platform_y"], z=df["platform_z"],
+            x=df["platform_y"], y=df["platform_x"], z=df["platform_z"],
             mode=p_mode,
             name="Plateforme",
             line=dict(color=PLATFORM_COLOR, width=5),
@@ -328,8 +340,8 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
         ))
         # Point courant de la plateforme
         fig.add_trace(go.Scatter3d(
-            x=[df["platform_x"].iloc[-1]],
-            y=[df["platform_y"].iloc[-1]],
+            x=[df["platform_y"].iloc[-1]],
+            y=[df["platform_x"].iloc[-1]],
             z=[df["platform_z"].iloc[-1]],
             mode="markers",
             name="Plateforme actuelle",
@@ -340,8 +352,8 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
     # --- Ligne de visée drone→plateforme (dernier pas) ---
     if has_drone and has_platform:
         fig.add_trace(go.Scatter3d(
-            x=[df["drone_x"].iloc[-1],    df["platform_x"].iloc[-1]],
-            y=[df["drone_y"].iloc[-1],    df["platform_y"].iloc[-1]],
+            x=[df["drone_y"].iloc[-1],    df["platform_y"].iloc[-1]],
+            y=[df["drone_x"].iloc[-1],    df["platform_x"].iloc[-1]],
             z=[df["drone_z"].iloc[-1],    df["platform_z"].iloc[-1]],
             mode="lines",
             name="Vecteur erreur",
@@ -366,7 +378,7 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
         title=dict(text="Trajectoire 3D — drone & plateforme", font=dict(size=13)),
         scene=dict(
             xaxis=dict(
-                title=dict(text="X (m)", font=dict(size=12, color="#374151")),
+                title=dict(text="Y (m)", font=dict(size=12, color="#374151")),
                 backgroundcolor="#f8fafc",
                 gridcolor="#e2e8f0",
                 showbackground=True,
@@ -374,7 +386,7 @@ def plot_3d_trajectory(df: pd.DataFrame) -> go.Figure:
                 tickfont=dict(size=10),
             ),
             yaxis=dict(
-                title=dict(text="Y (m)", font=dict(size=12, color="#374151")),
+                title=dict(text="X (m)", font=dict(size=12, color="#374151")),
                 backgroundcolor="#f1f5f9",
                 gridcolor="#e2e8f0",
                 showbackground=True,

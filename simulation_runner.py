@@ -46,13 +46,34 @@ class SimulationRunner:
                 normalized_action_input=True,
             )
 
+            # Architecture PPO–PID classique : le filtre MPC est désactivé.
+            if hasattr(self.env, "use_mpc_target_filter"):
+                self.env.use_mpc_target_filter = False
+
             self.model = PPO.load(
                 "models/ppo_drone_meta_quadricopter_mode5_hard_action_5modes_2.zip"
             )
 
+        elif model_type == "vitesse_mpc":
+            from envs.drone_rl_env_2_action import DroneLandingRLEnv
+
+            self.env = DroneLandingRLEnv(
+                gui=False,
+                episode_len_sec=50,
+                normalized_action_input=True,
+            )
+
+            # Architecture PPO–MPC–PID : le module MPC de l'environnement est activé.
+            if hasattr(self.env, "use_mpc_target_filter"):
+                self.env.use_mpc_target_filter = True
+
+            self.model = PPO.load(
+                "models/ppo_drone_meta_quadricopter_ppo_mpc_action_5modes_2.zip"
+            )
+
         else:
             raise ValueError(
-                "Type de modèle inconnu : choisir 'position' ou 'vitesse'."
+                "Type de modèle inconnu : choisir 'position', 'vitesse' ou 'vitesse_mpc'."
             )
 
         self._apply_deterministic_eval_config()
@@ -95,6 +116,10 @@ class SimulationRunner:
         # Forcer l'activation ou non du vent depuis l'interface
         if hasattr(self.env, "wind_enabled"):
             self.env.wind_enabled = bool(self.wind_enabled)
+
+        # Activer/désactiver explicitement le filtre MPC selon le modèle sélectionné.
+        if hasattr(self.env, "use_mpc_target_filter"):
+            self.env.use_mpc_target_filter = (self.model_type == "vitesse_mpc")
 
         # Compatibilité éventuelle avec d'autres noms de variables
         if hasattr(self.env, "scenario_mode"):
@@ -373,6 +398,9 @@ class SimulationRunner:
 
         summary = {
             "model_type": self.model_type,
+            "use_mpc_target_filter": bool(
+                getattr(self.env, "use_mpc_target_filter", False)
+            ) if self.env is not None else False,
             "scenario_mode": self.scenario_mode,
             "mode_seed": mode_seed,
             "wind_enabled": self.wind_enabled,
