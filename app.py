@@ -173,6 +173,7 @@ with st.sidebar:
             "PPO-PID : correction de position",
             "PPO-PID : correction de vitesse",
             "PPO-MPC-PID : correction de vitesse",
+            "PPO-SMC-PID : correction de vitesse",
         ],
         help="Sélection du modèle de commande à évaluer."
     )
@@ -256,6 +257,8 @@ if model_choice == "PPO-PID : correction de position":
     model_type = "position"
 elif model_choice == "PPO-PID : correction de vitesse":
     model_type = "vitesse"
+elif model_choice == "PPO-SMC-PID : correction de vitesse":
+    model_type = "vitesse_smc"
 else:
     model_type = "vitesse_mpc"
 
