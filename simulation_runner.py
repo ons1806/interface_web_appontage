@@ -70,7 +70,31 @@ class SimulationRunner:
             self.model = PPO.load(
                 "models/ppo_drone_meta_quadricopter_ppo_mpc_action_5modes_2.zip"
             )
+        elif model_type == "vitesse_smc":
+            from envs.drone_rl_env_2_action import DroneLandingRLEnv
 
+            self.env = DroneLandingRLEnv(
+              gui=False,
+              episode_len_sec=50,
+              normalized_action_input=True,
+            )
+
+             # Activation éventuelle du mode SMC si ton environnement possède ces variables
+            if hasattr(self.env, "use_smc_controller"):
+              self.env.use_smc_controller = True
+
+            if hasattr(self.env, "use_mpc_target_filter"):
+              self.env.use_mpc_target_filter = False
+
+            if hasattr(self.env, "controller_type"):
+              self.env.controller_type = "smc"
+
+            if hasattr(self.env, "architecture"):
+              self.env.architecture = "ppo_smc_pid"
+
+            self.model = PPO.load(
+              "models/ppo_drone_meta_quadricopter_mode5_hard_smc_action_5modes_2.zip"
+            )
         else:
             raise ValueError(
                 "Type de modèle inconnu : choisir 'position', 'vitesse' ou 'vitesse_mpc'."
