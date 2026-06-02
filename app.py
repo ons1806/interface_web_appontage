@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -178,6 +179,31 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     font-size: 12px;
     font-weight: 800;
     margin-left: 8px;
+}
+
+
+.logo-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 116px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+    padding: 10px;
+}
+
+.logo-box img {
+    max-height: 88px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.logo-placeholder {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
 }
 
 /* Cards */
@@ -557,10 +583,37 @@ def render_metric_card(label: str, value: str, note: str = "", success: Optional
 
 
 # ==================================================
-# Header
+# Header avec deux logos
 # ==================================================
-st.markdown(
-    f"""
+LOGO_LEFT_PATH = Path("assets/logo_gauche.png")
+LOGO_RIGHT_PATH = Path("assets/logo_droite.png")
+
+
+def render_logo(path: Path, label: str):
+    """Affiche un logo si le fichier existe, sinon un emplacement discret."""
+    if path.exists():
+        st.markdown('<div class="logo-box">', unsafe_allow_html=True)
+        st.image(str(path), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.markdown(
+            f"""
+<div class="logo-box">
+    <div class="logo-placeholder">{label}<br>{path.as_posix()}</div>
+</div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+logo_left_col, header_col, logo_right_col = st.columns([0.75, 5.0, 0.75])
+
+with logo_left_col:
+    render_logo(LOGO_LEFT_PATH, "Logo gauche")
+
+with header_col:
+    st.markdown(
+        f"""
 <div class="top-header">
     <div class="header-row">
         <div>
@@ -573,9 +626,12 @@ st.markdown(
         </div>
     </div>
 </div>
-    """,
-    unsafe_allow_html=True,
-)
+        """,
+        unsafe_allow_html=True,
+    )
+
+with logo_right_col:
+    render_logo(LOGO_RIGHT_PATH, "Logo droit")
 
 
 # ==================================================
