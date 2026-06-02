@@ -51,7 +51,7 @@ html, body, [class*="css"] {
 
 .block-container {
     max-width: 1680px;
-    padding-top: 0.25rem;
+    padding-top: 0.8rem;
     padding-bottom: 1.5rem;
 }
 
@@ -94,7 +94,7 @@ section[data-testid="stSidebar"] > div {
     background: var(--blue);
     color: white;
     font-weight: 700;
-    boxbox-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
 
 .nav-item:not(.active) {
@@ -130,46 +130,50 @@ section[data-testid="stSidebar"] .stButton > button {
     border-radius: 12px;
     font-weight: 800;
     padding: 0.75rem 1rem;
-    boxbox-shadow: 0 8px 18px rgba(37,99,235,0.25);
+    box-shadow: 0 8px 18px rgba(37,99,235,0.25);
 }
 
 section[data-testid="stSidebar"] .stButton > button:hover {
     transform: translateY(-1px);
-    boxbox-shadow: 0 10px 22px rgba(37,99,235,0.30);
+    box-shadow: 0 10px 22px rgba(37,99,235,0.30);
 }
 
 /* Header avec bande bleue */
 .dashboard-header {
-    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #2563eb 100%);
+    width: 100%;
+    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 56%, #2563eb 100%);
     border-radius: 18px;
-    padding: 18px 28px;
-    margin: 0 0 18px 0;
-    min-height: 128px;
+    padding: 24px 34px;
+    margin: 0.35rem 0 20px 0;
+    min-height: 158px;
     display: grid;
-    grid-template-columns: 120px 1fr 120px;
+    grid-template-columns: 140px minmax(0, 1fr) 140px;
     align-items: center;
-    gap: 24px;
+    column-gap: 28px;
     box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
     border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: visible;
 }
 
 .header-logo {
-    width: 112px;
-    height: 112px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.96);
+    width: 122px;
+    height: 122px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.98);
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;
+    padding: 10px;
     overflow: hidden;
     box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
+    justify-self: center;
 }
 
 .header-logo img {
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    display: block;
 }
 
 .header-logo-placeholder {
@@ -181,14 +185,18 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 
 .header-content {
     text-align: left;
+    color: #ffffff;
+    min-width: 0;
 }
 
 .header-title {
-    font-size: 32px;
+    font-size: 31px;
     font-weight: 850;
     color: #ffffff;
-    margin: 0 0 8px 0;
+    margin: 0 0 10px 0;
     letter-spacing: -0.02em;
+    line-height: 1.22;
+    white-space: normal;
 }
 
 .header-subtitle {
@@ -196,13 +204,15 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     font-size: 16px;
     margin: 0;
     line-height: 1.55;
+    max-width: 920px;
 }
 
 @media (max-width: 900px) {
     .dashboard-header {
         grid-template-columns: 82px 1fr 82px;
         gap: 12px;
-        padding: 14px;
+        padding: 16px;
+        min-height: 120px;
     }
     .header-logo {
         width: 76px;
@@ -211,6 +221,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     }
     .header-title {
         font-size: 22px;
+        line-height: 1.25;
     }
     .header-subtitle {
         font-size: 13px;
@@ -223,7 +234,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 15px 16px;
-    boxbox-shadow: 0 8px 24px rgba(15,23,42,0.055);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.055);
     height: 100%;
 }
 
@@ -247,7 +258,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 16px 18px;
-    boxbox-shadow: 0 8px 24px rgba(15,23,42,0.055);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.055);
     min-height: 104px;
 }
 
@@ -295,7 +306,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     border-color: var(--border) !important;
     border-radius: 16px !important;
     background: white !important;
-    boxbox-shadow: 0 8px 24px rgba(15,23,42,0.055);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.055);
 }
 
 /* Tables */
