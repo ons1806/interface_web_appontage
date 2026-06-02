@@ -585,7 +585,7 @@ def render_metric_card(label: str, value: str, note: str = "", success: Optional
 # ==================================================
 # Header avec deux logos
 # ==================================================
-LOGO_LEFT_PATH = Path("assets/logo_gauche.png")
+LOGO_LEFT_PATH = Path("assets/logo_gauche.jpg")
 LOGO_RIGHT_PATH = Path("assets/logo_droite.png")
 
 
