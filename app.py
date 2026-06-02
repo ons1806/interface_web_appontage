@@ -1,11 +1,13 @@
 import json
-from typing import Optional
+import base64
 from pathlib import Path
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import base64
+
 from simulation_runner import SimulationRunner
 
 
@@ -677,25 +679,17 @@ right_logo_html = (
     else f'<div class="logo-placeholder">Logo droit<br>{LOGO_RIGHT_PATH.as_posix()}</div>'
 )
 
-st.markdown(
-    f"""
+header_html = f"""
 <div class="academic-header">
-    <div class="academic-logo">
-        {left_logo_html}
-    </div>
-
+    <div class="academic-logo">{left_logo_html}</div>
     <div class="academic-center">
         <h1 class="academic-title">Appontage autonome de drone</h1>
         <p class="academic-subtitle">
             Visualisation et analyse des performances des architectures PPO
         </p>
     </div>
-
-    <div class="academic-logo">
-        {right_logo_html}
-    </div>
+    <div class="academic-logo">{right_logo_html}</div>
 </div>
-
 <div class="academic-tabs">
     <div class="academic-tab active">Vue d’ensemble</div>
     <div class="academic-tab">Simulation</div>
@@ -704,9 +698,8 @@ st.markdown(
     <div class="academic-tab">Export</div>
     <div class="academic-tab">Configuration</div>
 </div>
-    """,
-    unsafe_allow_html=True,
-)
+"""
+st.markdown(header_html.strip(), unsafe_allow_html=True)
 
 
 # ==================================================
