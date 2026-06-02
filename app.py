@@ -1,11 +1,10 @@
 import json
 from typing import Optional
-from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-import base64
 
 from simulation_runner import SimulationRunner
 
@@ -51,7 +50,7 @@ html, body, [class*="css"] {
 
 .block-container {
     max-width: 1680px;
-    padding-top: 0.8rem;
+    padding-top: 1.1rem;
     padding-bottom: 1.5rem;
 }
 
@@ -138,94 +137,125 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     box-shadow: 0 10px 22px rgba(37,99,235,0.30);
 }
 
-/* Header avec bande bleue */
-.dashboard-header {
-    width: 100%;
-    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 56%, #2563eb 100%);
-    border-radius: 18px;
-    padding: 24px 34px;
-    margin: 0.35rem 0 20px 0;
-    min-height: 158px;
+/* Header académique blanc avec deux logos */
+.academic-header {
+    background: #ffffff;
+    border: 1px solid #d8dee9;
+    border-radius: 14px;
+    padding: 22px 34px;
+    margin: 0 0 20px 0;
+    min-height: 165px;
     display: grid;
-    grid-template-columns: 140px minmax(0, 1fr) 140px;
+    grid-template-columns: 180px minmax(0, 1fr) 180px;
     align-items: center;
-    column-gap: 28px;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    overflow: visible;
+    column-gap: 24px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
-.header-logo {
-    width: 135px;
-    height: 135px;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
+.academic-logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0 !important;
-    overflow: visible !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0;
+    overflow: visible;
 }
 
-.header-logo img {
-    max-width: 135px;
-    max-height: 135px;
+.academic-logo img {
+    max-width: 145px;
+    max-height: 130px;
     object-fit: contain;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
 }
 
-.header-logo-placeholder {
+.logo-placeholder {
     color: #64748b;
-    font-size: 11px;
+    font-size: 12px;
     text-align: center;
     line-height: 1.25;
 }
 
-.header-content {
-    text-align: left;
-    color: #ffffff;
+.academic-center {
+    text-align: center;
     min-width: 0;
 }
 
-.header-title {
-    font-size: 31px;
+.academic-title {
+    color: #0f172a;
+    font-size: 34px;
     font-weight: 850;
-    color: #ffffff;
-    margin: 0 0 10px 0;
+    margin: 0 0 18px 0;
     letter-spacing: -0.02em;
-    line-height: 1.22;
-    white-space: normal;
+    line-height: 1.15;
 }
 
-.header-subtitle {
-    color: #dbeafe;
-    font-size: 16px;
+.academic-subtitle {
+    color: #334155;
+    font-size: 15px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     margin: 0;
     line-height: 1.55;
-    max-width: 920px;
+}
+
+/* Barre de navigation académique sous le header */
+.academic-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 0 0 24px 0;
+    border-bottom: 2px solid #e5e7eb;
+    overflow-x: auto;
+}
+
+.academic-tab {
+    padding: 13px 22px;
+    background: #ffffff;
+    border: 1px solid #d8dee9;
+    border-bottom: none;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 650;
+    border-radius: 8px 8px 0 0;
+    margin-right: 3px;
+    white-space: nowrap;
+}
+
+.academic-tab.active {
+    color: #1d4ed8;
+    border-bottom: 4px solid #ef4444;
+    background: #ffffff;
 }
 
 @media (max-width: 900px) {
-    .dashboard-header {
-        grid-template-columns: 82px 1fr 82px;
-        gap: 12px;
-        padding: 16px;
-        min-height: 120px;
+    .academic-header {
+        grid-template-columns: 92px 1fr 92px;
+        padding: 18px;
+        min-height: 130px;
+        column-gap: 12px;
     }
-    .header-logo {
-        width: 76px;
-        height: 76px;
-        border-radius: 12px;
+
+    .academic-logo img {
+        max-width: 82px;
+        max-height: 82px;
     }
-    .header-title {
-        font-size: 22px;
-        line-height: 1.25;
+
+    .academic-title {
+        font-size: 24px;
+        margin-bottom: 10px;
     }
-    .header-subtitle {
+
+    .academic-subtitle {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+    }
+
+    .academic-tab {
+        padding: 10px 12px;
         font-size: 13px;
     }
 }
@@ -607,7 +637,7 @@ def render_metric_card(label: str, value: str, note: str = "", success: Optional
 
 
 # ==================================================
-# Header avec bande bleue et deux logos
+# Header académique avec deux logos
 # ==================================================
 LOGO_LEFT_PATH = Path("asset/logo_gauche.jpg")
 LOGO_RIGHT_PATH = Path("asset/logo_droite.png")
@@ -638,27 +668,41 @@ right_logo_uri = image_to_data_uri(LOGO_RIGHT_PATH)
 left_logo_html = (
     f'<img src="{left_logo_uri}" alt="Logo gauche">'
     if left_logo_uri
-    else f'<div class="header-logo-placeholder">Logo gauche<br>{LOGO_LEFT_PATH.as_posix()}</div>'
+    else f'<div class="logo-placeholder">Logo gauche<br>{LOGO_LEFT_PATH.as_posix()}</div>'
 )
 
 right_logo_html = (
     f'<img src="{right_logo_uri}" alt="Logo droit">'
     if right_logo_uri
-    else f'<div class="header-logo-placeholder">Logo droit<br>{LOGO_RIGHT_PATH.as_posix()}</div>'
+    else f'<div class="logo-placeholder">Logo droit<br>{LOGO_RIGHT_PATH.as_posix()}</div>'
 )
 
 st.markdown(
     f"""
-<div class="dashboard-header">
-    <div class="header-logo">{left_logo_html}</div>
-    <div class="header-content">
-        <div class="header-title">Dashboard - Appontage autonome de drone</div>
-        <p class="header-subtitle">
-            Visualisation et analyse des performances des architectures PPO avec PyBullet,
-            trajectoire 3D et courbes en temps réel.
+<div class="academic-header">
+    <div class="academic-logo">
+        {left_logo_html}
+    </div>
+
+    <div class="academic-center">
+        <h1 class="academic-title">Appontage autonome de drone</h1>
+        <p class="academic-subtitle">
+            Visualisation et analyse des performances des architectures PPO
         </p>
     </div>
-    <div class="header-logo">{right_logo_html}</div>
+
+    <div class="academic-logo">
+        {right_logo_html}
+    </div>
+</div>
+
+<div class="academic-tabs">
+    <div class="academic-tab active">Vue d’ensemble</div>
+    <div class="academic-tab">Simulation</div>
+    <div class="academic-tab">Trajectoire 3D</div>
+    <div class="academic-tab">Résultats temporels</div>
+    <div class="academic-tab">Export</div>
+    <div class="academic-tab">Configuration</div>
 </div>
     """,
     unsafe_allow_html=True,
