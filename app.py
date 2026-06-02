@@ -638,6 +638,7 @@ def render_metric_card(label: str, value: str, note: str = "", success: Optional
     )
 
 
+
 # ==================================================
 # Header académique avec deux logos
 # ==================================================
@@ -690,46 +691,50 @@ header_html = f"""
     </div>
     <div class="academic-logo">{right_logo_html}</div>
 </div>
-<div class="academic-tabs">
-    <div class="academic-tab active">Vue d’ensemble</div>
-    <div class="academic-tab">Simulation</div>
-    <div class="academic-tab">Trajectoire 3D</div>
-    <div class="academic-tab">Résultats temporels</div>
-    <div class="academic-tab">Export</div>
-    <div class="academic-tab">Configuration</div>
-</div>
 """
 st.markdown(header_html.strip(), unsafe_allow_html=True)
 
 
 # ==================================================
-# Metric placeholders
+# Onglets Streamlit cliquables
 # ==================================================
-metric_cols = st.columns(5)
-metric_boxes = [c.empty() for c in metric_cols]
-
-with metric_boxes[0]:
-    render_metric_card("Statut", "En attente", "", None)
-with metric_boxes[1]:
-    render_metric_card("Erreur XY finale", "---", "m")
-with metric_boxes[2]:
-    render_metric_card("Erreur Z finale", "---", "m")
-with metric_boxes[3]:
-    render_metric_card("Récompense totale", "---", "")
-with metric_boxes[4]:
-    render_metric_card("Durée", "---", "pas de simulation")
+tab_overview, tab_simulation, tab_trajectory, tab_results, tab_export, tab_config = st.tabs(
+    [
+        "Vue d’ensemble",
+        "Simulation",
+        "Trajectoire 3D",
+        "Résultats temporels",
+        "Export",
+        "Configuration",
+    ]
+)
 
 
 # ==================================================
-# Main layout
+# Vue d’ensemble : simulation live + métriques
 # ==================================================
-left_col, sim_col, traj_col = st.columns([0.85, 1.45, 1.60])
+with tab_overview:
+    metric_cols = st.columns(5)
+    metric_boxes = [c.empty() for c in metric_cols]
 
-with left_col:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Configuration</div>', unsafe_allow_html=True)
-        st.markdown(
-            f"""
+    with metric_boxes[0]:
+        render_metric_card("Statut", "En attente", "", None)
+    with metric_boxes[1]:
+        render_metric_card("Erreur XY finale", "---", "m")
+    with metric_boxes[2]:
+        render_metric_card("Erreur Z finale", "---", "m")
+    with metric_boxes[3]:
+        render_metric_card("Récompense totale", "---", "")
+    with metric_boxes[4]:
+        render_metric_card("Durée", "---", "pas de simulation")
+
+    left_col, sim_col, traj_col = st.columns([0.85, 1.45, 1.60])
+
+    with left_col:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Configuration</div>', unsafe_allow_html=True)
+            st.markdown(
+                f"""
 | Paramètre | Valeur |
 |---|---|
 | Architecture | {model_choice} |
@@ -737,68 +742,105 @@ with left_col:
 | Vent Dryden | {'Activé' if wind_enabled else 'Désactivé'} |
 | Pas maximal | {max_steps} |
 | Intervalle | {frame_interval} pas |
-            """
-        )
-        status_placeholder = st.empty()
-        status_placeholder.markdown('<span class="status-badge status-idle">En attente</span>', unsafe_allow_html=True)
-        progress_bar = st.progress(0)
+"""
+            )
+            status_placeholder = st.empty()
+            status_placeholder.markdown(
+                '<span class="status-badge status-idle">En attente</span>',
+                unsafe_allow_html=True
+            )
+            progress_bar = st.progress(0)
 
-with sim_col:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Simulation PyBullet</div>', unsafe_allow_html=True)
-        image_placeholder = st.empty()
-        image_placeholder.info("Lancez la simulation depuis le panneau de contrôle.")
-        st.caption("Vue caméra générée par PyBullet en mode DIRECT.")
+    with sim_col:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Simulation PyBullet</div>', unsafe_allow_html=True)
+            image_placeholder = st.empty()
+            if "last_frame" in st.session_state:
+                image_placeholder.image(
+                    st.session_state["last_frame"],
+                    caption="Dernière image PyBullet",
+                    use_container_width=True
+                )
+            else:
+                image_placeholder.info("Lancez la simulation depuis le panneau de contrôle.")
+            st.caption("Vue caméra générée par PyBullet en mode DIRECT.")
 
-with traj_col:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Trajectoire 3D</div>', unsafe_allow_html=True)
-        trajectory3d_placeholder = st.empty()
-        trajectory3d_placeholder.plotly_chart(plot_3d_trajectory(None), use_container_width=True)
+    with traj_col:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Trajectoire 3D</div>', unsafe_allow_html=True)
+            trajectory3d_placeholder = st.empty()
+            if "df" in st.session_state:
+                trajectory3d_placeholder.plotly_chart(
+                    plot_3d_trajectory(st.session_state["df"]),
+                    use_container_width=True
+                )
+            else:
+                trajectory3d_placeholder.plotly_chart(
+                    plot_3d_trajectory(None),
+                    use_container_width=True
+                )
 
+    plot_cols = st.columns(4)
 
-# ==================================================
-# Plots
-# ==================================================
-plot_cols = st.columns(4)
+    with plot_cols[0]:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Erreur de position</div>', unsafe_allow_html=True)
+            error_placeholder = st.empty()
+            error_placeholder.plotly_chart(
+                plot_error(st.session_state.get("df")),
+                use_container_width=True
+            )
 
-with plot_cols[0]:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Erreur de position</div>', unsafe_allow_html=True)
-        error_placeholder = st.empty()
-        error_placeholder.plotly_chart(plot_error(None), use_container_width=True)
+    with plot_cols[1]:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Récompense</div>', unsafe_allow_html=True)
+            reward_placeholder = st.empty()
+            reward_placeholder.plotly_chart(
+                plot_reward(st.session_state.get("df")),
+                use_container_width=True
+            )
 
-with plot_cols[1]:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Récompense</div>', unsafe_allow_html=True)
-        reward_placeholder = st.empty()
-        reward_placeholder.plotly_chart(plot_reward(None), use_container_width=True)
+    with plot_cols[2]:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Actions PPO</div>', unsafe_allow_html=True)
+            actions_placeholder = st.empty()
+            actions_placeholder.plotly_chart(
+                plot_actions(st.session_state.get("df")),
+                use_container_width=True
+            )
 
-with plot_cols[2]:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Actions PPO</div>', unsafe_allow_html=True)
-        actions_placeholder = st.empty()
-        actions_placeholder.plotly_chart(plot_actions(None), use_container_width=True)
-
-with plot_cols[3]:
-    with st.container(border=True):
-        st.markdown('<div class="card-title">Distance drone-plateforme</div>', unsafe_allow_html=True)
-        dist_placeholder = st.empty()
-        dist_placeholder.plotly_chart(plot_xy_distance(None), use_container_width=True)
+    with plot_cols[3]:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Distance drone-plateforme</div>', unsafe_allow_html=True)
+            dist_placeholder = st.empty()
+            dist_placeholder.plotly_chart(
+                plot_xy_distance(st.session_state.get("df")),
+                use_container_width=True
+            )
 
 
 # ==================================================
 # Run simulation
 # ==================================================
 if run_button:
-    status_placeholder.markdown('<span class="status-badge status-running">Initialisation</span>', unsafe_allow_html=True)
+    status_placeholder.markdown(
+        '<span class="status-badge status-running">Initialisation</span>',
+        unsafe_allow_html=True
+    )
     image_placeholder.empty()
 
     try:
         runner = SimulationRunner()
-        runner.load_env_and_model(model_type=model_type, scenario_mode=scenario_mode, wind_enabled=wind_enabled)
+        runner.load_env_and_model(
+            model_type=model_type,
+            scenario_mode=scenario_mode,
+            wind_enabled=wind_enabled
+        )
     except Exception as e:
-        status_placeholder.markdown('<span class="status-badge status-error">Erreur de chargement</span>', unsafe_allow_html=True)
+        status_placeholder.markdown(
+            '<span class="status-badge status-error">Erreur de chargement</span>',
+            unsafe_allow_html=True
+        )
         st.error(f"Erreur lors du chargement du modèle : {e}")
         st.stop()
 
@@ -823,19 +865,41 @@ if run_button:
         with metric_boxes[0]:
             render_metric_card("Statut", "Succès" if ok else "En cours", "", ok if ok else None)
         with metric_boxes[1]:
-            render_metric_card("Erreur XY finale", f"{xy:.3f} m" if not np.isnan(xy) else "---", "seuil 0.15 m")
+            render_metric_card(
+                "Erreur XY finale",
+                f"{xy:.3f} m" if not np.isnan(xy) else "---",
+                "seuil 0.15 m"
+            )
         with metric_boxes[2]:
-            render_metric_card("Erreur Z finale", f"{z:.3f} m" if not np.isnan(z) else "---", "")
+            render_metric_card(
+                "Erreur Z finale",
+                f"{z:.3f} m" if not np.isnan(z) else "---",
+                ""
+            )
         with metric_boxes[3]:
-            render_metric_card("Récompense totale", f"{total:.2f}" if not np.isnan(total) else "---", "")
+            render_metric_card(
+                "Récompense totale",
+                f"{total:.2f}" if not np.isnan(total) else "---",
+                ""
+            )
         with metric_boxes[4]:
             render_metric_card("Durée", str(ep_len), "pas de simulation")
 
     def update_frame(frame, step):
-        image_placeholder.image(frame, caption=f"PyBullet - step {step}", use_container_width=True)
+        st.session_state["last_frame"] = frame
+
+        image_placeholder.image(
+            frame,
+            caption=f"PyBullet - step {step}",
+            use_container_width=True
+        )
+
         if len(live_data) > 0:
             df_live = pd.DataFrame(live_data)
-            trajectory3d_placeholder.plotly_chart(plot_3d_trajectory(df_live), use_container_width=True)
+            trajectory3d_placeholder.plotly_chart(
+                plot_3d_trajectory(df_live),
+                use_container_width=True
+            )
 
     def update_step(row, step):
         live_data.append(row)
@@ -852,7 +916,10 @@ if run_button:
         actions_placeholder.plotly_chart(plot_actions(df_live), use_container_width=True)
         dist_placeholder.plotly_chart(plot_xy_distance(df_live), use_container_width=True)
 
-    status_placeholder.markdown('<span class="status-badge status-running">Simulation en cours</span>', unsafe_allow_html=True)
+    status_placeholder.markdown(
+        '<span class="status-badge status-running">Simulation en cours</span>',
+        unsafe_allow_html=True
+    )
 
     try:
         result = runner.run_episode(
@@ -863,7 +930,10 @@ if run_button:
             on_step=update_step,
         )
     except Exception as e:
-        status_placeholder.markdown('<span class="status-badge status-error">Erreur de simulation</span>', unsafe_allow_html=True)
+        status_placeholder.markdown(
+            '<span class="status-badge status-error">Erreur de simulation</span>',
+            unsafe_allow_html=True
+        )
         st.error(f"Erreur pendant la simulation : {e}")
         st.stop()
 
@@ -877,7 +947,10 @@ if run_button:
     st.session_state["wind_enabled"] = wind_enabled
 
     progress_bar.progress(1.0)
-    status_placeholder.markdown('<span class="status-badge status-success">Simulation terminée</span>', unsafe_allow_html=True)
+    status_placeholder.markdown(
+        '<span class="status-badge status-success">Simulation terminée</span>',
+        unsafe_allow_html=True
+    )
 
     update_metric_cards(summary=summary)
     trajectory3d_placeholder.plotly_chart(plot_3d_trajectory(df), use_container_width=True)
@@ -888,43 +961,110 @@ if run_button:
 
 
 # ==================================================
-# Results and export
+# Onglet Simulation
 # ==================================================
-if "df" in st.session_state:
-    df = st.session_state["df"]
-    summary = st.session_state["summary"]
-    stored_model_choice = st.session_state.get("model_choice", model_choice)
-    stored_scenario_mode = st.session_state.get("scenario_mode", scenario_mode)
-    stored_wind_enabled = st.session_state.get("wind_enabled", wind_enabled)
+with tab_simulation:
+    st.subheader("Simulation PyBullet")
 
-    st.markdown("---")
-    st.markdown("## Synthèse et export")
+    with st.container(border=True):
+        if "last_frame" in st.session_state:
+            st.image(
+                st.session_state["last_frame"],
+                caption="Dernière image PyBullet enregistrée",
+                use_container_width=True
+            )
+        else:
+            st.info("Aucune simulation lancée. Lancez d’abord une simulation depuis le panneau de contrôle.")
 
-    res_col1, res_col2 = st.columns([2.2, 1])
 
-    with res_col1:
-        with st.container(border=True):
-            st.markdown('<div class="card-title">Tableau des données enregistrées</div>', unsafe_allow_html=True)
-            st.dataframe(df, use_container_width=True, height=320)
+# ==================================================
+# Onglet Trajectoire 3D
+# ==================================================
+with tab_trajectory:
+    st.subheader("Trajectoire 3D du drone et de la plateforme")
 
-    with res_col2:
-        with st.container(border=True):
-            st.markdown('<div class="card-title">Résumé de l’épisode</div>', unsafe_allow_html=True)
-            ok = bool(summary.get("success", False))
-            badge_bg = "#dcfce7" if ok else "#fee2e2"
-            badge_color = "#15803d" if ok else "#b91c1c"
-            badge_text = "Atterrissage réussi" if ok else "Atterrissage échoué"
-            st.markdown(
-                f"""
+    if "df" in st.session_state:
+        st.plotly_chart(
+            plot_3d_trajectory(st.session_state["df"]),
+            use_container_width=True
+        )
+    else:
+        st.info("Aucune trajectoire disponible. Lancez d’abord une simulation.")
+
+
+# ==================================================
+# Onglet Résultats temporels
+# ==================================================
+with tab_results:
+    st.subheader("Résultats temporels")
+
+    if "df" in st.session_state:
+        df_results = st.session_state["df"]
+
+        plot_cols_results = st.columns(4)
+
+        with plot_cols_results[0]:
+            with st.container(border=True):
+                st.markdown('<div class="card-title">Erreur de position</div>', unsafe_allow_html=True)
+                st.plotly_chart(plot_error(df_results), use_container_width=True)
+
+        with plot_cols_results[1]:
+            with st.container(border=True):
+                st.markdown('<div class="card-title">Récompense</div>', unsafe_allow_html=True)
+                st.plotly_chart(plot_reward(df_results), use_container_width=True)
+
+        with plot_cols_results[2]:
+            with st.container(border=True):
+                st.markdown('<div class="card-title">Actions PPO</div>', unsafe_allow_html=True)
+                st.plotly_chart(plot_actions(df_results), use_container_width=True)
+
+        with plot_cols_results[3]:
+            with st.container(border=True):
+                st.markdown('<div class="card-title">Distance drone-plateforme</div>', unsafe_allow_html=True)
+                st.plotly_chart(plot_xy_distance(df_results), use_container_width=True)
+    else:
+        st.info("Aucun résultat temporel disponible. Lancez d’abord une simulation.")
+
+
+# ==================================================
+# Onglet Export
+# ==================================================
+with tab_export:
+    st.subheader("Export des résultats")
+
+    if "df" in st.session_state:
+        df = st.session_state["df"]
+        summary = st.session_state["summary"]
+        stored_model_choice = st.session_state.get("model_choice", model_choice)
+        stored_scenario_mode = st.session_state.get("scenario_mode", scenario_mode)
+        stored_wind_enabled = st.session_state.get("wind_enabled", wind_enabled)
+
+        res_col1, res_col2 = st.columns([2.2, 1])
+
+        with res_col1:
+            with st.container(border=True):
+                st.markdown('<div class="card-title">Tableau des données enregistrées</div>', unsafe_allow_html=True)
+                st.dataframe(df, use_container_width=True, height=320)
+
+        with res_col2:
+            with st.container(border=True):
+                st.markdown('<div class="card-title">Résumé de l’épisode</div>', unsafe_allow_html=True)
+                ok = bool(summary.get("success", False))
+                badge_bg = "#dcfce7" if ok else "#fee2e2"
+                badge_color = "#15803d" if ok else "#b91c1c"
+                badge_text = "Atterrissage réussi" if ok else "Atterrissage échoué"
+
+                st.markdown(
+                    f"""
 <div style="text-align:center; padding:14px; background:{badge_bg}; color:{badge_color}; border-radius:12px; font-weight:900; margin-bottom:12px;">
     {badge_text}
 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-            st.markdown(
-                f"""
+                st.markdown(
+                    f"""
 | Métrique | Valeur |
 |---|---|
 | Erreur XY finale | `{summary.get('final_xy_error', 0):.4f} m` |
@@ -934,34 +1074,58 @@ if "df" in st.session_state:
 | Modèle | `{stored_model_choice}` |
 | Scénario | `Mode {stored_scenario_mode}` |
 | Vent | `{'Activé' if stored_wind_enabled else 'Désactivé'}` |
-                """
+"""
+                )
+
+        exp_col1, exp_col2, exp_col3 = st.columns(3)
+
+        with exp_col1:
+            st.download_button(
+                label="Télécharger CSV",
+                data=df.to_csv(index=False).encode("utf-8"),
+                file_name=f"simulation_appontage_mode{stored_scenario_mode}.csv",
+                mime="text/csv",
+                use_container_width=True,
             )
 
-    exp_col1, exp_col2, exp_col3 = st.columns(3)
+        with exp_col2:
+            st.download_button(
+                label="Télécharger résumé JSON",
+                data=json.dumps(summary, indent=2, default=str).encode("utf-8"),
+                file_name=f"summary_appontage_mode{stored_scenario_mode}.json",
+                mime="application/json",
+                use_container_width=True,
+            )
 
-    with exp_col1:
-        st.download_button(
-            label="Télécharger CSV",
-            data=df.to_csv(index=False).encode("utf-8"),
-            file_name=f"simulation_appontage_mode{stored_scenario_mode}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+        with exp_col3:
+            st.download_button(
+                label="Télécharger statistiques",
+                data=df.describe().to_csv().encode("utf-8"),
+                file_name=f"stats_appontage_mode{stored_scenario_mode}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+    else:
+        st.info("Aucun fichier à exporter. Lancez d’abord une simulation.")
 
-    with exp_col2:
-        st.download_button(
-            label="Télécharger résumé JSON",
-            data=json.dumps(summary, indent=2, default=str).encode("utf-8"),
-            file_name=f"summary_appontage_mode{stored_scenario_mode}.json",
-            mime="application/json",
-            use_container_width=True,
-        )
 
-    with exp_col3:
-        st.download_button(
-            label="Télécharger statistiques",
-            data=df.describe().to_csv().encode("utf-8"),
-            file_name=f"stats_appontage_mode{stored_scenario_mode}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+# ==================================================
+# Onglet Configuration
+# ==================================================
+with tab_config:
+    st.subheader("Configuration de la simulation")
+
+    st.markdown(
+        f"""
+| Paramètre | Valeur actuelle |
+|---|---|
+| Architecture PPO | {model_choice} |
+| Type interne du modèle | {model_type} |
+| Mode de scénario | {scenario_mode} |
+| Vent Dryden | {'Activé' if wind_enabled else 'Désactivé'} |
+| Nombre maximal de pas | {max_steps} |
+| Intervalle de mise à jour | {frame_interval} |
+"""
+    )
+
+    st.info("Les paramètres se modifient depuis le panneau de contrôle à gauche.")
