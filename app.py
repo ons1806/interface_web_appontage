@@ -386,6 +386,7 @@ with st.sidebar:
     st.markdown('<div class="nav-item">Trajectoire 3D</div>', unsafe_allow_html=True)
     st.markdown('<div class="nav-item">Résultats temporels</div>', unsafe_allow_html=True)
     st.markdown('<div class="nav-item">Export des résultats</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-item">À propos</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">Modèle et scénario</div>', unsafe_allow_html=True)
 
@@ -698,7 +699,7 @@ st.markdown(header_html.strip(), unsafe_allow_html=True)
 # ==================================================
 # Onglets Streamlit cliquables
 # ==================================================
-tab_overview, tab_simulation, tab_trajectory, tab_results, tab_export, tab_config = st.tabs(
+tab_overview, tab_simulation, tab_trajectory, tab_results, tab_export, tab_config, tab_about = st.tabs(
     [
         "Vue d’ensemble",
         "Simulation",
@@ -706,6 +707,7 @@ tab_overview, tab_simulation, tab_trajectory, tab_results, tab_export, tab_confi
         "Résultats temporels",
         "Export",
         "Configuration",
+        "À propos",
     ]
 )
 
@@ -1137,3 +1139,69 @@ with tab_config:
     )
 
     st.info("Les paramètres se modifient depuis le panneau de contrôle à gauche.")
+
+# ==================================================
+# Onglet À propos
+# ==================================================
+with tab_about:
+    st.subheader("À propos de l’application")
+
+    st.markdown(
+        """
+Cette interface web a été développée pour visualiser et analyser les performances d’un système
+d’appontage autonome de drone basé sur l’apprentissage par renforcement profond.
+
+Elle permet de lancer des simulations PyBullet, de comparer plusieurs architectures de commande
+basées sur PPO, puis d’afficher les résultats sous forme de trajectoires 3D, de courbes temporelles
+et d’indicateurs de performance.
+        """
+    )
+
+    about_col1, about_col2 = st.columns([1.1, 1])
+
+    with about_col1:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Architectures disponibles</div>', unsafe_allow_html=True)
+            st.markdown(
+                """
+- **PPO-PID : correction de position**  
+  Le modèle PPO génère une correction de position exploitée par la commande bas niveau.
+
+- **PPO-PID : correction de vitesse**  
+  Le modèle PPO génère une correction de vitesse afin d’améliorer la réactivité du drone.
+
+- **PPO-MPC-PID : correction de vitesse**  
+  Un module MPC est ajouté pour régulariser la consigne issue de PPO.
+
+- **PPO-SMC-PID : correction de vitesse**  
+  Un module SMC est intégré pour renforcer la robustesse face aux perturbations.
+                """
+            )
+
+    with about_col2:
+        with st.container(border=True):
+            st.markdown('<div class="card-title">Fonctionnalités principales</div>', unsafe_allow_html=True)
+            st.markdown(
+                """
+- Visualisation PyBullet en mode DIRECT ;
+- affichage de la trajectoire 3D du drone et de la plateforme ;
+- suivi des erreurs de position, récompenses et actions PPO ;
+- export des résultats en CSV, JSON et statistiques ;
+- évaluation selon plusieurs scénarios, avec ou sans vent Dryden.
+                """
+            )
+
+    with st.container(border=True):
+        st.markdown('<div class="card-title">Contexte du projet</div>', unsafe_allow_html=True)
+        st.markdown(
+            """
+Cette application sert de support de démonstration et d’analyse pour le projet d’appontage autonome.
+Elle met en évidence le comportement du drone, l’évolution des erreurs, la récompense cumulée et les
+actions produites par les politiques entraînées.
+            """
+        )
+        st.info(
+            "Les paramètres de simulation se règlent dans le panneau de contrôle à gauche. "
+            "Après exécution, les résultats restent disponibles dans les onglets Trajectoire 3D, "
+            "Résultats temporels et Export."
+        )
