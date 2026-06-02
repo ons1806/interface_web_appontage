@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -51,7 +50,7 @@ html, body, [class*="css"] {
 
 .block-container {
     max-width: 1680px;
-    padding-top: 1.1rem;
+    padding-top: 0.25rem;
     padding-bottom: 1.5rem;
 }
 
@@ -94,7 +93,7 @@ section[data-testid="stSidebar"] > div {
     background: var(--blue);
     color: white;
     font-weight: 700;
-    -shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    boxbox-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
 
 .nav-item:not(.active) {
@@ -115,7 +114,7 @@ section[data-testid="stSidebar"] > div {
 }
 
 /* Inputs */
-.stSelect [data-baseweb="select"] > div,
+.stSelectbox [data-baseweb="select"] > div,
 .stNumberInput input,
 .stTextInput input {
     background: white;
@@ -130,84 +129,91 @@ section[data-testid="stSidebar"] .stButton > button {
     border-radius: 12px;
     font-weight: 800;
     padding: 0.75rem 1rem;
-    -shadow: 0 8px 18px rgba(37,99,235,0.25);
+    boxbox-shadow: 0 8px 18px rgba(37,99,235,0.25);
 }
 
 section[data-testid="stSidebar"] .stButton > button:hover {
     transform: translateY(-1px);
-    -shadow: 0 10px 22px rgba(37,99,235,0.30);
+    boxbox-shadow: 0 10px 22px rgba(37,99,235,0.30);
 }
 
-/* Header */
-.top-header {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-left: 7px solid var(--blue);
+/* Header avec bande bleue */
+.dashboard-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 55%, #2563eb 100%);
     border-radius: 18px;
-    padding: 24px 30px;
-    min-height: 150px;
-    display: flex;
+    padding: 18px 28px;
+    margin: 0 0 18px 0;
+    min-height: 128px;
+    display: grid;
+    grid-template-columns: 120px 1fr 120px;
     align-items: center;
-    margin-bottom: 18px;
-    -shadow: 0 10px 28px rgba(15,23,42,0.06);
+    gap: 24px;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.header-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-}
-
-.header-title {
-    font-size: 30px;
-    font-weight: 850;
-    color: var(--text);
-    margin: 0 0 7px 0;
-}
-
-.header-subtitle {
-    color: #475569;
-    font-size: 15px;
-    margin: 0;
-}
-
-.header-pill {
-    display: inline-block;
-    background: var(--blue-soft);
-    color: #1d4ed8;
-    border: 1px solid #bfdbfe;
-    border-radius: 999px;
-    padding: 7px 12px;
-    font-size: 12px;
-    font-weight: 800;
-    margin-left: 8px;
-}
-
-
-.logo-box {
+.header-logo {
+    width: 112px;
+    height: 112px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 150px;
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    box-shadow: 0 10px 28px rgba(15,23,42,0.06);
-    padding: 12px;
+    padding: 8px;
     overflow: hidden;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.18);
 }
 
-.logo-box img {
-    max-height: 125px;
-    max-width: 95%;
+.header-logo img {
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
 }
 
-.logo-placeholder {
-    font-size: 12px;
-    color: var(--muted);
+.header-logo-placeholder {
+    color: #64748b;
+    font-size: 11px;
     text-align: center;
+    line-height: 1.25;
+}
+
+.header-content {
+    text-align: left;
+}
+
+.header-title {
+    font-size: 32px;
+    font-weight: 850;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.02em;
+}
+
+.header-subtitle {
+    color: #dbeafe;
+    font-size: 16px;
+    margin: 0;
+    line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+    .dashboard-header {
+        grid-template-columns: 82px 1fr 82px;
+        gap: 12px;
+        padding: 14px;
+    }
+    .header-logo {
+        width: 76px;
+        height: 76px;
+        border-radius: 12px;
+    }
+    .header-title {
+        font-size: 22px;
+    }
+    .header-subtitle {
+        font-size: 13px;
+    }
 }
 
 /* Cards */
@@ -216,7 +222,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 15px 16px;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.055);
+    boxbox-shadow: 0 8px 24px rgba(15,23,42,0.055);
     height: 100%;
 }
 
@@ -240,7 +246,7 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 16px 18px;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.055);
+    boxbox-shadow: 0 8px 24px rgba(15,23,42,0.055);
     min-height: 104px;
 }
 
@@ -288,7 +294,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     border-color: var(--border) !important;
     border-radius: 16px !important;
     background: white !important;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.055);
+    boxbox-shadow: 0 8px 24px rgba(15,23,42,0.055);
 }
 
 /* Tables */
@@ -587,55 +593,62 @@ def render_metric_card(label: str, value: str, note: str = "", success: Optional
 
 
 # ==================================================
-# Header avec deux logos
+# Header avec bande bleue et deux logos
 # ==================================================
 LOGO_LEFT_PATH = Path("asset/logo_gauche.jpg")
 LOGO_RIGHT_PATH = Path("asset/logo_droite.png")
 
 
-def render_logo(path: Path, label: str):
-    """Affiche un logo si le fichier existe, sinon un emplacement discret."""
-    if path.exists():
-        st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-        st.image(str(path), width=120)
-        st.markdown('</div>', unsafe_allow_html=True)
+def image_to_data_uri(path: Path) -> Optional[str]:
+    """Convertit une image locale en URI base64 pour l'intégrer dans le header HTML."""
+    if not path.exists():
+        return None
+
+    suffix = path.suffix.lower()
+    if suffix in [".jpg", ".jpeg"]:
+        mime = "image/jpeg"
+    elif suffix == ".png":
+        mime = "image/png"
+    elif suffix == ".webp":
+        mime = "image/webp"
     else:
-        st.markdown(
-            f"""
-<div class="logo-box">
-    <div class="logo-placeholder">{label}<br>{path.as_posix()}</div>
-</div>
-            """,
-            unsafe_allow_html=True,
-        )
+        mime = "image/png"
+
+    encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
+    return f"data:{mime};base64,{encoded}"
 
 
-logo_left_col, header_col, logo_right_col = st.columns([0.9, 5.2, 0.9])
+left_logo_uri = image_to_data_uri(LOGO_LEFT_PATH)
+right_logo_uri = image_to_data_uri(LOGO_RIGHT_PATH)
 
-with logo_left_col:
-    render_logo(LOGO_LEFT_PATH, "Logo gauche")
+left_logo_html = (
+    f'<img src="{left_logo_uri}" alt="Logo gauche">'
+    if left_logo_uri
+    else f'<div class="header-logo-placeholder">Logo gauche<br>{LOGO_LEFT_PATH.as_posix()}</div>'
+)
 
-with header_col:
-    st.markdown(
-        f"""
-<div class="top-header">
-    <div class="header-row">
-        <div>
-            <div class="header-title">Dashboard - Appontage autonome de drone</div>
-            <p class="header-subtitle">Visualisation et analyse des performances des architectures PPO avec PyBullet, trajectoire 3D et courbes en temps réel.</p>
-        </div>
-        <div>
-            <span class="header-pill">Mode {scenario_mode}</span>
-            <span class="header-pill">{'Vent activé' if wind_enabled else 'Vent désactivé'}</span>
-        </div>
+right_logo_html = (
+    f'<img src="{right_logo_uri}" alt="Logo droit">'
+    if right_logo_uri
+    else f'<div class="header-logo-placeholder">Logo droit<br>{LOGO_RIGHT_PATH.as_posix()}</div>'
+)
+
+st.markdown(
+    f"""
+<div class="dashboard-header">
+    <div class="header-logo">{left_logo_html}</div>
+    <div class="header-content">
+        <div class="header-title">Dashboard - Appontage autonome de drone</div>
+        <p class="header-subtitle">
+            Visualisation et analyse des performances des architectures PPO avec PyBullet,
+            trajectoire 3D et courbes en temps réel.
+        </p>
     </div>
+    <div class="header-logo">{right_logo_html}</div>
 </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with logo_right_col:
-    render_logo(LOGO_RIGHT_PATH, "Logo droit")
+    """,
+    unsafe_allow_html=True,
+)
 
 
 # ==================================================
