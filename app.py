@@ -156,23 +156,26 @@ section[data-testid="stSidebar"] .stButton > button:hover {
 }
 
 .header-logo {
-    width: 120px;
-    height: 120px;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
+    width: 135px;
+    height: 135px;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0;
-    overflow: visible;
+    padding: 0 !important;
+    overflow: visible !important;
 }
 
 .header-logo img {
-    max-width: 120px;
-    max-height: 120px;
+    max-width: 135px;
+    max-height: 135px;
     object-fit: contain;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .header-logo-placeholder {
