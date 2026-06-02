@@ -772,12 +772,14 @@ with tab_overview:
             if "df" in st.session_state:
                 trajectory3d_placeholder.plotly_chart(
                     plot_3d_trajectory(st.session_state["df"]),
-                    use_container_width=True
+                    use_container_width=True,
+                    key="overview_trajectory_existing"
                 )
             else:
                 trajectory3d_placeholder.plotly_chart(
                     plot_3d_trajectory(None),
-                    use_container_width=True
+                    use_container_width=True,
+                    key="overview_trajectory_empty"
                 )
 
     plot_cols = st.columns(4)
@@ -788,7 +790,8 @@ with tab_overview:
             error_placeholder = st.empty()
             error_placeholder.plotly_chart(
                 plot_error(st.session_state.get("df")),
-                use_container_width=True
+                use_container_width=True,
+                key="overview_error_initial"
             )
 
     with plot_cols[1]:
@@ -797,7 +800,8 @@ with tab_overview:
             reward_placeholder = st.empty()
             reward_placeholder.plotly_chart(
                 plot_reward(st.session_state.get("df")),
-                use_container_width=True
+                use_container_width=True,
+                key="overview_reward_initial"
             )
 
     with plot_cols[2]:
@@ -806,7 +810,8 @@ with tab_overview:
             actions_placeholder = st.empty()
             actions_placeholder.plotly_chart(
                 plot_actions(st.session_state.get("df")),
-                use_container_width=True
+                use_container_width=True,
+                key="overview_actions_initial"
             )
 
     with plot_cols[3]:
@@ -815,7 +820,8 @@ with tab_overview:
             dist_placeholder = st.empty()
             dist_placeholder.plotly_chart(
                 plot_xy_distance(st.session_state.get("df")),
-                use_container_width=True
+                use_container_width=True,
+                key="overview_distance_initial"
             )
 
 
@@ -898,7 +904,8 @@ if run_button:
             df_live = pd.DataFrame(live_data)
             trajectory3d_placeholder.plotly_chart(
                 plot_3d_trajectory(df_live),
-                use_container_width=True
+                use_container_width=True,
+                key=f"overview_trajectory_live_{step}"
             )
 
     def update_step(row, step):
@@ -911,10 +918,10 @@ if run_button:
         df_live = pd.DataFrame(live_data)
         update_metric_cards(row=row)
 
-        error_placeholder.plotly_chart(plot_error(df_live), use_container_width=True)
-        reward_placeholder.plotly_chart(plot_reward(df_live), use_container_width=True)
-        actions_placeholder.plotly_chart(plot_actions(df_live), use_container_width=True)
-        dist_placeholder.plotly_chart(plot_xy_distance(df_live), use_container_width=True)
+        error_placeholder.plotly_chart(plot_error(df_live), use_container_width=True, key=f"overview_error_live_{step}")
+        reward_placeholder.plotly_chart(plot_reward(df_live), use_container_width=True, key=f"overview_reward_live_{step}")
+        actions_placeholder.plotly_chart(plot_actions(df_live), use_container_width=True, key=f"overview_actions_live_{step}")
+        dist_placeholder.plotly_chart(plot_xy_distance(df_live), use_container_width=True, key=f"overview_distance_live_{step}")
 
     status_placeholder.markdown(
         '<span class="status-badge status-running">Simulation en cours</span>',
@@ -953,11 +960,11 @@ if run_button:
     )
 
     update_metric_cards(summary=summary)
-    trajectory3d_placeholder.plotly_chart(plot_3d_trajectory(df), use_container_width=True)
-    error_placeholder.plotly_chart(plot_error(df), use_container_width=True)
-    reward_placeholder.plotly_chart(plot_reward(df), use_container_width=True)
-    actions_placeholder.plotly_chart(plot_actions(df), use_container_width=True)
-    dist_placeholder.plotly_chart(plot_xy_distance(df), use_container_width=True)
+    trajectory3d_placeholder.plotly_chart(plot_3d_trajectory(df), use_container_width=True, key="overview_trajectory_final")
+    error_placeholder.plotly_chart(plot_error(df), use_container_width=True, key="overview_error_final")
+    reward_placeholder.plotly_chart(plot_reward(df), use_container_width=True, key="overview_reward_final")
+    actions_placeholder.plotly_chart(plot_actions(df), use_container_width=True, key="overview_actions_final")
+    dist_placeholder.plotly_chart(plot_xy_distance(df), use_container_width=True, key="overview_distance_final")
 
 
 # ==================================================
@@ -986,7 +993,8 @@ with tab_trajectory:
     if "df" in st.session_state:
         st.plotly_chart(
             plot_3d_trajectory(st.session_state["df"]),
-            use_container_width=True
+            use_container_width=True,
+            key="tab_trajectory_final"
         )
     else:
         st.info("Aucune trajectoire disponible. Lancez d’abord une simulation.")
@@ -1006,22 +1014,22 @@ with tab_results:
         with plot_cols_results[0]:
             with st.container(border=True):
                 st.markdown('<div class="card-title">Erreur de position</div>', unsafe_allow_html=True)
-                st.plotly_chart(plot_error(df_results), use_container_width=True)
+                st.plotly_chart(plot_error(df_results), use_container_width=True, key="tab_results_error")
 
         with plot_cols_results[1]:
             with st.container(border=True):
                 st.markdown('<div class="card-title">Récompense</div>', unsafe_allow_html=True)
-                st.plotly_chart(plot_reward(df_results), use_container_width=True)
+                st.plotly_chart(plot_reward(df_results), use_container_width=True, key="tab_results_reward")
 
         with plot_cols_results[2]:
             with st.container(border=True):
                 st.markdown('<div class="card-title">Actions PPO</div>', unsafe_allow_html=True)
-                st.plotly_chart(plot_actions(df_results), use_container_width=True)
+                st.plotly_chart(plot_actions(df_results), use_container_width=True, key="tab_results_actions")
 
         with plot_cols_results[3]:
             with st.container(border=True):
                 st.markdown('<div class="card-title">Distance drone-plateforme</div>', unsafe_allow_html=True)
-                st.plotly_chart(plot_xy_distance(df_results), use_container_width=True)
+                st.plotly_chart(plot_xy_distance(df_results), use_container_width=True, key="tab_results_distance")
     else:
         st.info("Aucun résultat temporel disponible. Lancez d’abord une simulation.")
 
