@@ -423,7 +423,7 @@ with st.sidebar:
     with st.expander("Aide", expanded=False):
         st.markdown(
             """
-Cette interface lance une simulation PyBullet en mode DIRECT et affiche les résultats du modèle PPO sélectionné.
+Cette interface lance une simulation PyBullet en mode DIRECT et affiche les résultats du modèle sélectionné.
 
 Les courbes et la trajectoire 3D sont synchronisées avec l'image PyBullet afin d'éviter le retard visuel.
             """
@@ -685,7 +685,7 @@ header_html = f"""
     <div class="academic-center">
         <h1 class="academic-title">Appontage autonome de drone</h1>
         <p class="academic-subtitle">
-            Visualisation et analyse des performances des architectures PPO
+            Visualisation et analyse des performances des architectures étudiées
         </p>
     </div>
     <div class="academic-logo">{right_logo_html}</div>
