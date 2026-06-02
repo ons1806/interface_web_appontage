@@ -94,7 +94,7 @@ section[data-testid="stSidebar"] > div {
     background: var(--blue);
     color: white;
     font-weight: 700;
-    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    -shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
 }
 
 .nav-item:not(.active) {
@@ -115,7 +115,7 @@ section[data-testid="stSidebar"] > div {
 }
 
 /* Inputs */
-.stSelectbox [data-baseweb="select"] > div,
+.stSelect [data-baseweb="select"] > div,
 .stNumberInput input,
 .stTextInput input {
     background: white;
@@ -130,12 +130,12 @@ section[data-testid="stSidebar"] .stButton > button {
     border-radius: 12px;
     font-weight: 800;
     padding: 0.75rem 1rem;
-    box-shadow: 0 8px 18px rgba(37,99,235,0.25);
+    -shadow: 0 8px 18px rgba(37,99,235,0.25);
 }
 
 section[data-testid="stSidebar"] .stButton > button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(37,99,235,0.30);
+    -shadow: 0 10px 22px rgba(37,99,235,0.30);
 }
 
 /* Header */
@@ -144,9 +144,12 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     border: 1px solid var(--border);
     border-left: 7px solid var(--blue);
     border-radius: 18px;
-    padding: 22px 26px;
+    padding: 24px 30px;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
     margin-bottom: 18px;
-    box-shadow: 0 10px 28px rgba(15,23,42,0.06);
+    -shadow: 0 10px 28px rgba(15,23,42,0.06);
 }
 
 .header-row {
@@ -186,17 +189,18 @@ section[data-testid="stSidebar"] .stButton > button:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 116px;
+    height: 150px;
     background: #ffffff;
     border: 1px solid var(--border);
     border-radius: 18px;
     box-shadow: 0 10px 28px rgba(15,23,42,0.06);
-    padding: 10px;
+    padding: 12px;
+    overflow: hidden;
 }
 
 .logo-box img {
-    max-height: 88px;
-    max-width: 100%;
+    max-height: 125px;
+    max-width: 95%;
     object-fit: contain;
 }
 
@@ -593,7 +597,7 @@ def render_logo(path: Path, label: str):
     """Affiche un logo si le fichier existe, sinon un emplacement discret."""
     if path.exists():
         st.markdown('<div class="logo-box">', unsafe_allow_html=True)
-        st.image(str(path), use_container_width=True)
+        st.image(str(path), width=120)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.markdown(
@@ -606,7 +610,7 @@ def render_logo(path: Path, label: str):
         )
 
 
-logo_left_col, header_col, logo_right_col = st.columns([0.75, 5.0, 0.75])
+logo_left_col, header_col, logo_right_col = st.columns([0.9, 5.2, 0.9])
 
 with logo_left_col:
     render_logo(LOGO_LEFT_PATH, "Logo gauche")
